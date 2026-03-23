@@ -6,11 +6,10 @@ import { fileURLToPath } from "url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export function serveStatic(app: Express) {
-  // adjust this path to where the built client actually lives
-  const distPath = path.resolve(__dirname, "../client/dist");
+  // Vite builds the client + index.html into the root dist/ folder
+  const distPath = path.resolve(__dirname, "../dist");
 
   if (!fs.existsSync(distPath)) {
-    // log but do NOT crash the server
     console.error(
       `Static assets directory not found at ${distPath}. ` +
         "API will still run, but frontend assets are missing."
@@ -18,9 +17,10 @@ export function serveStatic(app: Express) {
     return;
   }
 
+  // Serve all static assets (JS, CSS, images, etc.)
   app.use(express.static(distPath));
 
-  // fall through to index.html for all non-API routes
+  // SPA-style catch-all: send index.html for any non-API route
   app.get("/*", (_req, res) => {
     res.sendFile(path.resolve(distPath, "index.html"));
   });
