@@ -13,4 +13,4 @@ ENV PORT=3000
 ENV NODE_ENV=production
 EXPOSE 3000
 
-CMD ["node", "dist/index.cjs"]
+CMD ["tsx", "server/index.ts"]]
