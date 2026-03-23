@@ -58,7 +58,9 @@ app.use((req, res, next) => {
 
   next();
 });
-
+app.get("/", (_req, res) => {
+  res.status(200).send("Atlas MVP API is running");
+});
 (async () => {
   await registerRoutes(httpServer, app);
 
