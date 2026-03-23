@@ -17,10 +17,9 @@ export function serveStatic(app: Express) {
     return;
   }
 
-  // Serve all static assets (JS, CSS, images, etc.)
   app.use(express.static(distPath));
 
-  // SPA-style catch-all: send index.html for any non-API route
+  // SPA-style catch-all for the dashboard
   app.get("/*", (_req, res) => {
     res.sendFile(path.resolve(distPath, "index.html"));
   });
