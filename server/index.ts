@@ -6,7 +6,9 @@ const PORT = process.env.PORT || 3000;
 app.get('/api/dashboard/stats', (req, res) => {
   res.json({ status: 'ok' });
 });
-
+app.get('/', (req, res) => {
+  res.send('Atlas MVP server is running');
+});
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
