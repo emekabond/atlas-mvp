@@ -1,7 +1,4 @@
-import express, { type Express } from "express";
-import fs from "fs";
-import path, { dirname } from "path";
-import { fileURLToPath } from "url";
+import express, { type Express } from "express"; import fs from "fs"; import path, { dirname } from "path"; import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -18,8 +15,13 @@ export function serveStatic(app: Express) {
 
   app.use(express.static(distPath));
 
-  // Regex catch‑all for any non-API route
-  app.get(/.*/, (_req, res) => {
+  // Explicitly handle root
+  app.get("/", (_req, res) => {
+    res.sendFile(path.resolve(distPath, "index.html"));
+  });
+
+  // Only catch non-API paths
+  app.get(/^\/(?!api\/).*/, (_req, res) => {
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
