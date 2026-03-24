@@ -9,12 +9,12 @@ RUN npm install
 # Copy source
 COPY . .
 
-# Build the frontend (creates dist/)
+# Build the frontend + server bundle (creates dist/)
 RUN npm run build
 
-ENV PORT=3000
+# Let Railway provide PORT, just document what we expose
 ENV NODE_ENV=production
-EXPOSE 3000
+EXPOSE 8080
 
 # Start the server (uses server/index.ts that serves dist/)
 CMD ["npm", "start"]
