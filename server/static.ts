@@ -6,7 +6,6 @@ import { fileURLToPath } from "url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export function serveStatic(app: Express) {
-  // Vite builds the client + index.html into the root dist/ folder
   const distPath = path.resolve(__dirname, "../dist");
 
   if (!fs.existsSync(distPath)) {
@@ -19,8 +18,8 @@ export function serveStatic(app: Express) {
 
   app.use(express.static(distPath));
 
-  // SPA-style catch-all for the dashboard
-  app.get("/*", (_req, res) => {
+  // Use "*" instead of "/*" to avoid the PathError in Express 5
+  app.get("*", (_req, res) => {
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
