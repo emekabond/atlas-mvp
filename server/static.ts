@@ -18,8 +18,8 @@ export function serveStatic(app: Express) {
 
   app.use(express.static(distPath));
 
-  // Use "*" instead of "/*" to avoid the PathError in Express 5
-  app.get("*", (_req, res) => {
+  // Regex catch‑all for any non-API route
+  app.get(/.*/, (_req, res) => {
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
