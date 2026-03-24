@@ -80,6 +80,34 @@ app.get("/", (_req, res) => {
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
+  import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url); const __dirnameIndex = path.dirname(__filename);
+
+// ...
+
+(async () => {
+  await registerRoutes(httpServer, app);
+
+  // existing error middleware stays here...
+
+  // Add this BEFORE the serveStatic / vite block:
+  if (process.env.NODE_ENV === "production") {
+    const distPath = path.resolve(__dirnameIndex, "../dist");
+
+    app.get("/", (_req, res) => {
+      res.sendFile(path.resolve(distPath, "index.html"));
+    });
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    serveStatic(app);
+  } else {
+    const { setupVite } = await import("./vite");
+    await setupVite(httpServer, app);
+  }
+
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
   } else {
