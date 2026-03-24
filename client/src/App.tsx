@@ -17,6 +17,8 @@ import Compliance from "@/pages/compliance";
 import ReconciliationPage from "@/pages/reconciliation";
 import SettingsPage from "@/pages/settings";
 import NotFound from "@/pages/not-found";
+import EngineRoom from "@/pages/engine-room";
+
 
 function AppRouter() {
   return (
@@ -31,6 +33,7 @@ function AppRouter() {
       <Route path="/compliance" component={Compliance} />
       <Route path="/reconciliation" component={ReconciliationPage} />
       <Route path="/settings" component={SettingsPage} />
+      <Route path="/engine-room/" component={EngineRoom} />
       <Route component={NotFound} />
     </Switch>
   );

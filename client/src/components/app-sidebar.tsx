@@ -25,6 +25,9 @@ const navItems = [
   { title: "Compliance Agent", url: "/compliance", icon: Shield },
   { title: "Recon Agent", url: "/reconciliation", icon: GitCompareArrows },
   { title: "Settings", url: "/settings", icon: Settings },
+
+
+ { title: "Engine Room", url: "/engine-room/", icon: Landmark }, 
 ];
 
 function AtlasLogo() {
