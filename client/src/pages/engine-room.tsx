@@ -39,18 +39,18 @@ function EngineRoom() {
             </div>
             <div className="flex items-center gap-2">
               <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-              <span>Autonomous agents: KYC, fraud, treasury, reconciliation</span>
+              <span>Autonomous agents: credit, compliance, fraud, treasury, reconciliation </span>
             </div>
             <div className="flex items-center gap-2">
               <span className="h-1.5 w-1.5 rounded-full bg-violet-400" />
-              <span>Revenue flywheel: margin, float, interchange, SaaS</span>
+              <span>Revenue flywheel: credit, margin, float, interchange, SaaS</span>
             </div>
           </div>
         </header>
 
         {/* Three-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Column 1: Hybrid rails */}
+          {/* Column 1: Hybrid Rails */}
           <section className="space-y-4">
             <h2 className="text-sm font-semibold text-slate-200 tracking-wide uppercase">
               Hybrid rails
@@ -130,7 +130,7 @@ function EngineRoom() {
             </div>
           </section>
 
-          {/* Column 2: Autonomous agents */}
+          {/* Column 2: Autonomous Agents */}
           <section className="space-y-4">
             <h2 className="text-sm font-semibold text-slate-200 tracking-wide uppercase">
               Autonomous agents
@@ -138,22 +138,67 @@ function EngineRoom() {
             <p className="text-xs text-slate-300">
               On top of those rails, Atlas runs a fleet of narrow, aligned
               agents that each own a small, critical responsibility – from KYC
-              to treasury – with humans firmly in the loop.
+              to credit to treasury – with humans firmly in the loop.
             </p>
 
-            <div className="space-y-3">
-              {/* KYC / KYB agent */}
+                      <div className="space-y-3">
+            {/* Credit Agent */}
+            <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 space-y-2">
+    <div className="flex items-center justify-between">
+      <span className="text-xs font-medium text-slate-100">
+        Credit Agent
+      </span>
+      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
+        Revenue engine
+      </span>
+    </div>
+    <p className="text-[11px] text-slate-300">
+      Orchestrates invoice factoring, revenue-based financing, working
+      capital lines, and bridge loans on top of Atlas rails and data.
+      It prices risk using closed-loop cash flow and behavior data
+      across all corridors and products.
+    </p>
+    <ul className="text-[11px] text-slate-400 space-y-1 list-disc list-inside">
+      <li>Underwrites off real-time invoices, receivables, and flows</li>
+      <li>Structures credit terms and limits per customer and corridor</li>
+      <li>Feeds live performance back into pricing and eligibility</li>
+    </ul>
+  </div>
+
+  {/* Onboarding Agent */}
+  <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 space-y-2">
+    <div className="flex items-center justify-between">
+      <span className="text-xs font-medium text-slate-100">
+        Onboarding Agent
+      </span>
+      <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-300 border border-sky-500/30">
+        Speed focused
+      </span>
+    </div>
+    <p className="text-[11px] text-slate-300">
+      Primary interface with customers, driving them from “hello” to
+      “account active” as fast as possible while collecting the data
+      the Engine Room needs.
+    </p>
+    <ul className="text-[11px] text-slate-400 space-y-1 list-disc list-inside">
+      <li>Coordinates applications, docs, and required checks</li>
+      <li>Optimizes for completion rate and time-to-first-transaction</li>
+      <li>Hands off clean profiles to Compliance and Credit agents</li>
+    </ul>
+  </div>
+
+              {/* Compliance Agent */}
               <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-slate-100">
-                    KYC / KYB agent
+                    Compliance Agent
                   </span>
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
                     Guardrailed
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-300">
-                  Automates most onboarding decisions while escalating edge
+                  Automates most KYC / KYB decisions and ongoing monitoring decisions while escalating edge
                   cases, keeping operators in control and regulators
                   comfortable.
                 </p>
@@ -164,11 +209,11 @@ function EngineRoom() {
                 </ul>
               </div>
 
-              {/* Fraud / risk agent */}
+              {/* Fraud / Risk Agent */}
               <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-slate-100">
-                    Fraud & risk agent
+                    Fraud and Risk Agent
                   </span>
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/30">
                     Protective
@@ -186,11 +231,11 @@ function EngineRoom() {
                 </ul>
               </div>
 
-              {/* Treasury / liquidity agent */}
+              {/* Treasury / Liquidity Agent */}
               <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-slate-100">
-                    Treasury & liquidity agent
+                    Treasury & Liquidity Agent
                   </span>
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-300 border border-sky-500/30">
                     Capital aware
@@ -207,11 +252,11 @@ function EngineRoom() {
                 </ul>
               </div>
 
-              {/* Reconciliation agent */}
+              {/* Reconciliation Agent */}
               <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-slate-100">
-                    Reconciliation & reporting agent
+                    Reconciliation & Reporting Agent
                   </span>
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-300 border border-violet-500/30">
                     Audit ready
@@ -231,18 +276,40 @@ function EngineRoom() {
             </div>
           </section>
 
-          {/* Column 3: Revenue flywheel */}
+          {/* Column 3: Revenue Flywheel */}
           <section className="space-y-4">
             <h2 className="text-sm font-semibold text-slate-200 tracking-wide uppercase">
-              Revenue flywheel
+              Revenue Flywheel
             </h2>
             <p className="text-xs text-slate-300">
               The Engine Room doesn’t just keep the machine running – it drives
-              margin. Atlas is built so every useful workflow can attach to one
+              margin. Atlas is built so every useful workflow, especially credit and financing, can attach to one
               of a few durable monetization primitives.
             </p>
 
             <div className="space-y-3">
+                {/* Origination & financing fees */}
+<div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 space-y-2">
+  <div className="flex items-center justify-between">
+    <span className="text-xs font-medium text-slate-100">
+      Origination & financing fees
+    </span>
+    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
+      Credit revenue
+    </span>
+  </div>
+  <p className="text-[11px] text-slate-300">
+    Atlas earns upfront origination fees and ongoing yield or
+    revenue-share on invoice factoring, revenue-based financing,
+    working capital, and bridge facilities originated through the OS.
+  </p>
+  <ul className="text-[11px] text-slate-400 space-y-1 list-disc list-inside">
+    <li>Tied directly to closed-loop data from the Engine Room</li>
+    <li>Improves with each cohort of borrowers and performance data</li>
+    <li>Stacks on top of existing payments and FX economics</li>
+  </ul>
+</div>
+
               {/* Margin on flows */}
               <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 space-y-2">
                 <div className="flex items-center justify-between">

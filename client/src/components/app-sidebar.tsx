@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { LayoutDashboard, FileText, Brain, Landmark, CreditCard, ArrowLeftRight, BarChart3, Shield, GitCompareArrows, Settings } from "lucide-react";
+import { LayoutDashboard, FileText, Brain, Landmark, CreditCard, ArrowLeftRight, BarChart3, Shield, GitCompareArrows, Settings, CogIcon } from "lucide-react";
 import { Link } from "wouter";
 import {
   Sidebar,
@@ -27,7 +27,7 @@ const navItems = [
   { title: "Settings", url: "/settings", icon: Settings },
 
 
- { title: "Engine Room", url: "/engine-room/", icon: Landmark }, 
+ { title: "Engine Room", url: "/engine-room/", icon: CogIcon }, 
 ];
 
 function AtlasLogo() {
@@ -113,7 +113,7 @@ export function AppSidebar() {
       <SidebarFooter className="p-4 pt-2">
         <div className="text-[10px] text-sidebar-foreground/40 leading-relaxed">
           <div>Atlas v0.1.0 MVP</div>
-          <div>Bridge + Circle + Lead Bank</div>
+          <div>Lead Bank + Bridge + Circle + Rain</div>
         </div>
       </SidebarFooter>
     </Sidebar>
