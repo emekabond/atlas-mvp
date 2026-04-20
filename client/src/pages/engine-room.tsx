@@ -395,7 +395,7 @@ function MemoSection({ data }: { data?: Memo }) {
             value="85%"
             foot="Factoring default"
           />
-          <Stat label="Corridor cap" value="$400K" foot="US→MX tenant cap" />
+          <Stat label="Corridor cap" value="$30M" foot="US→MX tenant cap" />
         </div>
       </div>
       <div className="overflow-hidden rounded-lg border border-slate-800">

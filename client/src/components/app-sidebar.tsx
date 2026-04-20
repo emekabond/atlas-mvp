@@ -141,7 +141,7 @@ export function AppSidebar() {
             Meridian Software
           </div>
           <div className="text-[10px] text-sidebar-foreground/60">
-            US → AR · Facility live · $250K
+            US → AR · Facility live · $18M
           </div>
         </div>
       </SidebarHeader>

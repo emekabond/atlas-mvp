@@ -674,28 +674,45 @@ export const storage = new DatabaseStorage();
 
 // Seed data function
 export function seedDatabase() {
-  // Check if already seeded
+  // Check if already seeded with the current mid-market scale (V3)
+  // Reseed if any client's creditLimit is below the mid-market floor ($1M).
   const existingClients = db.select().from(clients).all();
-  if (existingClients.length > 0) return;
+  const hasMidMarketScale = existingClients.length > 0 && existingClients.every((c: any) => (c.creditLimit ?? 0) >= 1_000_000);
+  if (hasMidMarketScale) return;
+
+  // Wipe stale small-scale seed data before re-seeding at mid-market scale.
+  if (existingClients.length > 0) {
+    db.run(sql`DELETE FROM card_transactions`);
+    db.run(sql`DELETE FROM cards`);
+    db.run(sql`DELETE FROM treasury_sweeps`);
+    db.run(sql`DELETE FROM fx_transactions`);
+    db.run(sql`DELETE FROM transactions`);
+    db.run(sql`DELETE FROM invoices`);
+    db.run(sql`DELETE FROM rbf_facilities`);
+    db.run(sql`DELETE FROM credit_assessments`);
+    db.run(sql`DELETE FROM compliance_alerts`);
+    db.run(sql`DELETE FROM compliance_entities`);
+    db.run(sql`DELETE FROM clients`);
+  }
 
   // Seed Clients (TH replaced with PH, added BR, CO, IN clients)
   const clientData: InsertClient[] = [
-    { name: "Meridian Software", country: "Argentina", corridor: "US→AR", status: "active", kybStatus: "approved", creditScore: 82, creditLimit: 250000, riskTier: "low" },
-    { name: "Volta Digital Agency", country: "Mexico", corridor: "US→MX", status: "active", kybStatus: "approved", creditScore: 74, creditLimit: 180000, riskTier: "low" },
-    { name: "NovaBridge SaaS", country: "Poland", corridor: "US→PL", status: "active", kybStatus: "approved", creditScore: 91, creditLimit: 400000, riskTier: "low" },
-    { name: "Phan & Associates", country: "Vietnam", corridor: "US→VN", status: "active", kybStatus: "approved", creditScore: 65, creditLimit: 120000, riskTier: "medium" },
-    { name: "Bucharest Dynamics", country: "Romania", corridor: "US→RO", status: "active", kybStatus: "approved", creditScore: 78, creditLimit: 200000, riskTier: "low" },
-    { name: "Manila Bay Digital", country: "Philippines", corridor: "US→PH", status: "active", kybStatus: "in_review", creditScore: 58, creditLimit: 80000, riskTier: "medium" },
-    { name: "Altiplano Exports", country: "Argentina", corridor: "US→AR", status: "active", kybStatus: "approved", creditScore: 45, creditLimit: 60000, riskTier: "high" },
-    { name: "Centurion Dev Labs", country: "Mexico", corridor: "US→MX", status: "active", kybStatus: "approved", creditScore: 88, creditLimit: 350000, riskTier: "low" },
-    { name: "Kraków Cloud Services", country: "Poland", corridor: "US→PL", status: "active", kybStatus: "approved", creditScore: 72, creditLimit: 150000, riskTier: "medium" },
-    { name: "Pacific Rim Imports", country: "Vietnam", corridor: "US→VN", status: "inactive", kybStatus: "approved", creditScore: 39, creditLimit: 40000, riskTier: "high" },
-    { name: "Wrocław Fintech", country: "Poland", corridor: "US→PL", status: "active", kybStatus: "in_review", creditScore: 69, creditLimit: 100000, riskTier: "medium" },
-    { name: "Guadalajara Studios", country: "Mexico", corridor: "US→MX", status: "active", kybStatus: "approved", creditScore: 85, creditLimit: 280000, riskTier: "low" },
-    { name: "São Paulo DevHouse", country: "Brazil", corridor: "US→BR", status: "active", kybStatus: "approved", creditScore: 77, creditLimit: 190000, riskTier: "low" },
-    { name: "Bogotá SaaS Studio", country: "Colombia", corridor: "US→CO", status: "active", kybStatus: "approved", creditScore: 68, creditLimit: 140000, riskTier: "medium" },
-    { name: "Mumbai Infra Labs", country: "India", corridor: "US→IN", status: "active", kybStatus: "approved", creditScore: 84, creditLimit: 320000, riskTier: "low" },
-    { name: "Recife Digital Agency", country: "Brazil", corridor: "US→BR", status: "active", kybStatus: "in_review", creditScore: 55, creditLimit: 70000, riskTier: "medium" },
+    { name: "Meridian Software", country: "Argentina", corridor: "US→AR", status: "active", kybStatus: "approved", creditScore: 82, creditLimit: 18000000, riskTier: "low" },
+    { name: "Volta Digital Agency", country: "Mexico", corridor: "US→MX", status: "active", kybStatus: "approved", creditScore: 74, creditLimit: 12500000, riskTier: "low" },
+    { name: "NovaBridge SaaS", country: "Poland", corridor: "US→PL", status: "active", kybStatus: "approved", creditScore: 91, creditLimit: 25000000, riskTier: "low" },
+    { name: "Phan & Associates", country: "Vietnam", corridor: "US→VN", status: "active", kybStatus: "approved", creditScore: 65, creditLimit: 8500000, riskTier: "medium" },
+    { name: "Bucharest Dynamics", country: "Romania", corridor: "US→RO", status: "active", kybStatus: "approved", creditScore: 78, creditLimit: 14000000, riskTier: "low" },
+    { name: "Manila Bay Digital", country: "Philippines", corridor: "US→PH", status: "active", kybStatus: "in_review", creditScore: 58, creditLimit: 6000000, riskTier: "medium" },
+    { name: "Altiplano Exports", country: "Argentina", corridor: "US→AR", status: "active", kybStatus: "approved", creditScore: 45, creditLimit: 4500000, riskTier: "high" },
+    { name: "Centurion Dev Labs", country: "Mexico", corridor: "US→MX", status: "active", kybStatus: "approved", creditScore: 88, creditLimit: 22000000, riskTier: "low" },
+    { name: "Kraków Cloud Services", country: "Poland", corridor: "US→PL", status: "active", kybStatus: "approved", creditScore: 72, creditLimit: 10500000, riskTier: "medium" },
+    { name: "Pacific Rim Imports", country: "Vietnam", corridor: "US→VN", status: "inactive", kybStatus: "approved", creditScore: 39, creditLimit: 3000000, riskTier: "high" },
+    { name: "Wrocław Fintech", country: "Poland", corridor: "US→PL", status: "active", kybStatus: "in_review", creditScore: 69, creditLimit: 7500000, riskTier: "medium" },
+    { name: "Guadalajara Studios", country: "Mexico", corridor: "US→MX", status: "active", kybStatus: "approved", creditScore: 85, creditLimit: 19500000, riskTier: "low" },
+    { name: "São Paulo DevHouse", country: "Brazil", corridor: "US→BR", status: "active", kybStatus: "approved", creditScore: 77, creditLimit: 13500000, riskTier: "low" },
+    { name: "Bogotá SaaS Studio", country: "Colombia", corridor: "US→CO", status: "active", kybStatus: "approved", creditScore: 68, creditLimit: 9500000, riskTier: "medium" },
+    { name: "Mumbai Infra Labs", country: "India", corridor: "US→IN", status: "active", kybStatus: "approved", creditScore: 84, creditLimit: 21000000, riskTier: "low" },
+    { name: "Recife Digital Agency", country: "Brazil", corridor: "US→BR", status: "active", kybStatus: "in_review", creditScore: 55, creditLimit: 5000000, riskTier: "medium" },
   ];
 
   for (const c of clientData) {
@@ -713,7 +730,7 @@ export function seedDatabase() {
   for (let i = 0; i < 35; i++) {
     const clientIdx = (i % 16) + 1;
     const status = statuses[i % 4];
-    const amount = Math.round((5000 + Math.random() * 95000) * 100) / 100;
+    const amount = Math.round((450000 + Math.random() * 4500000) * 100) / 100;
     const daysAgo = Math.floor(Math.random() * 60);
     const createdDate = new Date();
     createdDate.setDate(createdDate.getDate() - daysAgo);
@@ -749,7 +766,7 @@ export function seedDatabase() {
     createdDate.setDate(createdDate.getDate() - daysAgo);
     const type = txnTypes[i % 3];
     const status = txnStatuses[i % 3];
-    const amount = Math.round((1000 + Math.random() * 50000) * 100) / 100;
+    const amount = Math.round((250000 + Math.random() * 3500000) * 100) / 100;
 
     db.insert(transactions).values({
       invoiceId: (i % 35) + 1,
@@ -775,7 +792,7 @@ export function seedDatabase() {
       paymentHistory: Math.min(100, Math.max(20, score + Math.floor(Math.random() * 20 - 10))),
       corridorRisk: Math.min(100, Math.max(20, score + Math.floor(Math.random() * 20 - 10))),
       erpHealth: Math.min(100, Math.max(20, score + Math.floor(Math.random() * 20 - 10))),
-      recommendedLimit: clientData[i].creditLimit || 50000,
+      recommendedLimit: clientData[i].creditLimit || 3500000,
       recommendation: score >= 80 ? "increase" : score >= 60 ? "maintain" : score >= 45 ? "flag_review" : "decrease",
       assessedAt: new Date(Date.now() - Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000)).toISOString(),
     }).run();
@@ -874,14 +891,14 @@ export function seedDatabase() {
 
   // Seed RBF Facilities
   const rbfData: InsertRbfFacility[] = [
-    { clientId: 1, facilityAmount: 150000, drawnAmount: 85000, repaidAmount: 32000, revenueSharePct: 7.5, termMonths: 6, status: "active", monthlyRevenue: 42000, repaymentCap: 1.3, createdAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString() },
-    { clientId: 3, facilityAmount: 300000, drawnAmount: 200000, repaidAmount: 75000, revenueSharePct: 6.0, termMonths: 12, status: "active", monthlyRevenue: 95000, repaymentCap: 1.25, createdAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString() },
-    { clientId: 8, facilityAmount: 200000, drawnAmount: 120000, repaidAmount: 48000, revenueSharePct: 8.0, termMonths: 6, status: "active", monthlyRevenue: 62000, repaymentCap: 1.35, createdAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString() },
-    { clientId: 5, facilityAmount: 100000, drawnAmount: 100000, repaidAmount: 100000, revenueSharePct: 7.0, termMonths: 3, status: "fully_repaid", monthlyRevenue: 38000, repaymentCap: 1.3, createdAt: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000).toISOString() },
-    { clientId: 13, facilityAmount: 120000, drawnAmount: 60000, repaidAmount: 15000, revenueSharePct: 8.5, termMonths: 6, status: "active", monthlyRevenue: 35000, repaymentCap: 1.3, createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() },
-    { clientId: 15, facilityAmount: 250000, drawnAmount: 0, repaidAmount: 0, revenueSharePct: 6.5, termMonths: 12, status: "pending_approval", monthlyRevenue: 78000, repaymentCap: 1.25, createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() },
-    { clientId: 12, facilityAmount: 180000, drawnAmount: 140000, repaidAmount: 52000, revenueSharePct: 7.0, termMonths: 6, status: "active", monthlyRevenue: 55000, repaymentCap: 1.3, createdAt: new Date(Date.now() - 75 * 24 * 60 * 60 * 1000).toISOString() },
-    { clientId: 2, facilityAmount: 90000, drawnAmount: 0, repaidAmount: 0, revenueSharePct: 9.0, termMonths: 3, status: "pending_approval", monthlyRevenue: 28000, repaymentCap: 1.35, createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() },
+    { clientId: 1, facilityAmount: 18000000, drawnAmount: 9500000, repaidAmount: 3600000, revenueSharePct: 7.5, termMonths: 6, status: "active", monthlyRevenue: 4800000, repaymentCap: 1.3, createdAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString() },
+    { clientId: 3, facilityAmount: 28000000, drawnAmount: 18500000, repaidAmount: 6800000, revenueSharePct: 6.0, termMonths: 12, status: "active", monthlyRevenue: 9200000, repaymentCap: 1.25, createdAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString() },
+    { clientId: 8, facilityAmount: 22000000, drawnAmount: 13500000, repaidAmount: 5200000, revenueSharePct: 8.0, termMonths: 6, status: "active", monthlyRevenue: 6400000, repaymentCap: 1.35, createdAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString() },
+    { clientId: 5, facilityAmount: 12000000, drawnAmount: 12000000, repaidAmount: 12000000, revenueSharePct: 7.0, termMonths: 3, status: "fully_repaid", monthlyRevenue: 3800000, repaymentCap: 1.3, createdAt: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000).toISOString() },
+    { clientId: 13, facilityAmount: 11000000, drawnAmount: 5500000, repaidAmount: 1400000, revenueSharePct: 8.5, termMonths: 6, status: "active", monthlyRevenue: 3400000, repaymentCap: 1.3, createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() },
+    { clientId: 15, facilityAmount: 20000000, drawnAmount: 0, repaidAmount: 0, revenueSharePct: 6.5, termMonths: 12, status: "pending_approval", monthlyRevenue: 7600000, repaymentCap: 1.25, createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() },
+    { clientId: 12, facilityAmount: 16000000, drawnAmount: 12200000, repaidAmount: 4600000, revenueSharePct: 7.0, termMonths: 6, status: "active", monthlyRevenue: 5400000, repaymentCap: 1.3, createdAt: new Date(Date.now() - 75 * 24 * 60 * 60 * 1000).toISOString() },
+    { clientId: 2, facilityAmount: 9000000, drawnAmount: 0, repaidAmount: 0, revenueSharePct: 9.0, termMonths: 3, status: "pending_approval", monthlyRevenue: 2700000, repaymentCap: 1.35, createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() },
   ];
 
   for (const rbf of rbfData) {
@@ -913,8 +930,8 @@ export function seedDatabase() {
     createdDate.setDate(createdDate.getDate() - daysAgo);
     const sweepType = sweepTypes[i % 3];
     const amount = sweepType === "yield_harvest"
-      ? Math.round((500 + Math.random() * 3000) * 100) / 100
-      : Math.round((10000 + Math.random() * 80000) * 100) / 100;
+      ? Math.round((35000 + Math.random() * 180000) * 100) / 100
+      : Math.round((750000 + Math.random() * 5500000) * 100) / 100;
 
     db.insert(treasurySweeps).values({
       fromAccount: sweepAccounts[i % sweepAccounts.length],
@@ -936,7 +953,7 @@ export function seedDatabase() {
   ];
   const cardTypes = ["virtual", "virtual", "virtual", "physical"];
   const cardStatuses = ["active", "active", "active", "active", "frozen"];
-  const spendLimits = [5000, 10000, 15000, 20000, 25000, 30000, 35000, 40000, 50000];
+  const spendLimits = [75000, 125000, 200000, 300000, 450000, 600000, 800000, 1000000, 1500000];
 
   for (let i = 0; i < 20; i++) {
     const limit = spendLimits[i % spendLimits.length];
@@ -994,7 +1011,7 @@ export function seedDatabase() {
     const category = merchantCategories[i % merchantCategories.length];
     const merchants = categoryMap[category];
     const merchant = merchants[i % merchants.length];
-    const amount = Math.round((50 + Math.random() * 2500) * 100) / 100;
+    const amount = Math.round((1800 + Math.random() * 48000) * 100) / 100;
     const interchangeFee = Math.round(amount * (0.015 + Math.random() * 0.01) * 100) / 100;
     const status = cardTxnStatuses[i % cardTxnStatuses.length];
     const type = cardTxnTypes[i % cardTxnTypes.length];
@@ -1039,7 +1056,7 @@ export function seedDatabase() {
     const corridor = corridors[i % corridors.length];
     const config = fxCorridorConfig[corridor];
     const direction = fxDirections[i % 2];
-    const amount = Math.round((2000 + Math.random() * 45000) * 100) / 100;
+    const amount = Math.round((500000 + Math.random() * 4500000) * 100) / 100;
     const spreadBps = config.spreadRange[0] + Math.random() * (config.spreadRange[1] - config.spreadRange[0]);
     const roundedSpreadBps = Math.round(spreadBps * 10) / 10;
     const spreadPct = roundedSpreadBps / 10000;

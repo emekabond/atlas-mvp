@@ -241,7 +241,7 @@ function RbfDetailDialog({ facility, client, onDraw, onRepay, isDrawing, isRepay
               data-testid="button-rbf-draw"
             >
               <ArrowDownToLine className="h-4 w-4 mr-2" />
-              {isDrawing ? "Processing..." : "Draw $10,000"}
+              {isDrawing ? "Processing..." : "Draw $500,000"}
             </Button>
             <Button
               variant="outline"
@@ -251,7 +251,7 @@ function RbfDetailDialog({ facility, client, onDraw, onRepay, isDrawing, isRepay
               data-testid="button-rbf-repay"
             >
               <ArrowUpFromLine className="h-4 w-4 mr-2" />
-              {isRepaying ? "Processing..." : "Repay $5,000"}
+              {isRepaying ? "Processing..." : "Repay $250,000"}
             </Button>
           </div>
         )}
@@ -453,7 +453,7 @@ function RbfTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/rbf/facilities"] });
       queryClient.invalidateQueries({ queryKey: ["/api/rbf/overview"] });
-      toast({ title: "Draw processed", description: "$10,000 has been drawn from the facility." });
+      toast({ title: "Draw processed", description: "$500,000 has been drawn from the facility." });
     },
   });
 
@@ -465,7 +465,7 @@ function RbfTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/rbf/facilities"] });
       queryClient.invalidateQueries({ queryKey: ["/api/rbf/overview"] });
-      toast({ title: "Repayment processed", description: "$5,000 repayment has been recorded." });
+      toast({ title: "Repayment processed", description: "$250,000 repayment has been recorded." });
     },
   });
 
@@ -613,12 +613,12 @@ function FacilityHeader() {
         </div>
         <div>
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Limit</div>
-          <div className="mt-1 text-sm font-semibold tabular-nums">$250,000</div>
+          <div className="mt-1 text-sm font-semibold tabular-nums">$18,000,000</div>
         </div>
         <div>
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Utilized</div>
-          <div className="mt-1 text-sm font-semibold tabular-nums">$162,500</div>
-          <div className="text-[11px] text-muted-foreground">65% of limit</div>
+          <div className="mt-1 text-sm font-semibold tabular-nums">$11,200,000</div>
+          <div className="text-[11px] text-muted-foreground">62% of limit</div>
         </div>
         <div>
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Advance rate</div>

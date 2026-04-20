@@ -287,7 +287,7 @@ export async function registerRoutes(
     const payHistory = Math.min(100, Math.max(20, newScore + Math.floor(Math.random() * 15 - 7)));
     const corrRisk = Math.min(100, Math.max(20, newScore + Math.floor(Math.random() * 15 - 7)));
     const erpH = Math.min(100, Math.max(20, newScore + Math.floor(Math.random() * 15 - 7)));
-    const recLimit = Math.round(newScore * 4000 + Math.random() * 50000);
+    const recLimit = Math.round(newScore * 220000 + Math.random() * 3500000);
     const recommendation = newScore >= 80 ? "increase" : newScore >= 60 ? "maintain" : newScore >= 45 ? "flag_review" : "decrease";
 
     const assessment = await storage.createCreditAssessment({
@@ -354,7 +354,7 @@ export async function registerRoutes(
     const activeFacility = facilities.find(f => f.status === "active");
     if (!activeFacility) return res.status(404).json({ message: "No active RBF facility found" });
 
-    const drawAmount = req.body.amount || 10000;
+    const drawAmount = req.body.amount || 500000;
     const available = activeFacility.facilityAmount - activeFacility.drawnAmount;
     if (drawAmount > available) return res.status(400).json({ message: "Draw exceeds available amount" });
 
@@ -370,7 +370,7 @@ export async function registerRoutes(
     const activeFacility = facilities.find(f => f.status === "active");
     if (!activeFacility) return res.status(404).json({ message: "No active RBF facility found" });
 
-    const repayAmount = req.body.amount || 5000;
+    const repayAmount = req.body.amount || 250000;
     const outstanding = activeFacility.drawnAmount - activeFacility.repaidAmount;
     const actualRepay = Math.min(repayAmount, outstanding);
 
@@ -400,7 +400,7 @@ export async function registerRoutes(
     const sweep = await storage.createTreasurySweep({
       fromAccount: req.body.fromAccount || "FBO Main",
       toStrategy: req.body.toStrategy || "Circle Yield",
-      amount: req.body.amount || 25000,
+      amount: req.body.amount || 1200000,
       type: "sweep_in",
       status: "processing",
       createdAt: new Date().toISOString(),
@@ -414,9 +414,9 @@ export async function registerRoutes(
       status: "completed",
       message: "AI rebalance executed successfully",
       adjustments: [
-        { strategy: "Circle Yield", action: "increase", amount: 15000 },
-        { strategy: "Compound USDC", action: "decrease", amount: 10000 },
-        { strategy: "Aave USDC", action: "increase", amount: 5000 },
+        { strategy: "Circle Yield", action: "increase", amount: 850000 },
+        { strategy: "Compound USDC", action: "decrease", amount: 620000 },
+        { strategy: "Aave USDC", action: "increase", amount: 340000 },
       ],
     });
   });
@@ -480,7 +480,7 @@ export async function registerRoutes(
   app.post("/api/cards/:id/payout", async (req, res) => {
     const card = await storage.getCard(parseInt(req.params.id));
     if (!card) return res.status(404).json({ message: "Card not found" });
-    const amount = Math.round((500 + Math.random() * 2000) * 100) / 100;
+    const amount = Math.round((18000 + Math.random() * 45000) * 100) / 100;
     const interchangeFee = Math.round(amount * 0.02 * 100) / 100;
     const txn = await storage.createCardTransaction({
       cardId: card.id,
@@ -663,8 +663,8 @@ export async function registerRoutes(
       facility: {
         product: "Invoice Factoring",
         status: "live",
-        limit: 250000,
-        utilized: 162500,
+        limit: 18000000,
+        utilized: 11200000,
         advanceRateBps: 8500,
         currency: "USD",
       },
@@ -693,11 +693,11 @@ export async function registerRoutes(
       .filter((f) => f.status === "active")
       .reduce((s, f) => s + Math.max(0, f.facilityAmount - f.drawnAmount), 0);
     res.json({
-      availableLiquidity: Math.round(87500 + rbfUndrawn * 0.6),
+      availableLiquidity: Math.round(2750000 + rbfUndrawn * 0.6),
       eligibleReceivables: Math.round(eligible),
       activeAdvances: Math.round(factored + rbfDrawn),
       nextSettlementHours: 4.2,
-      undrawnFacility: Math.round(rbfUndrawn + 87500),
+      undrawnFacility: Math.round(rbfUndrawn + 2750000),
       advanceRateBps: 8500,
     });
   });
@@ -709,8 +709,8 @@ export async function registerRoutes(
         agent: "Credit Agent",
         severity: "info",
         title: "Advance eligible: Volta Digital invoice INV-2041",
-        body: "US\u2192MX corridor, 30-day net, clean ERP match. Advance at 85% = $38,250 today.",
-        amount: 38250,
+        body: "US\u2192MX corridor, 30-day net, clean ERP match. Advance at 85% = $2,380,000 today.",
+        amount: 2380000,
         rationale: [
           "Buyer concentration within policy (18%)",
           "Recon status: matched on Codat",
@@ -738,9 +738,9 @@ export async function registerRoutes(
         id: "sweep-idle-003",
         agent: "Treasury Agent",
         severity: "info",
-        title: "Idle USDC suggestion: sweep $45K to Circle Yield",
-        body: "FBO balance has held $45K idle for 3 days. Pilot sweep available at 4.6% APY.",
-        amount: 45000,
+        title: "Idle USDC suggestion: sweep $1.25M to Circle Yield",
+        body: "FBO balance has held $1.25M idle for 3 days. Pilot sweep available at 4.6% APY.",
+        amount: 1250000,
         rationale: [
           "Reserve minimums satisfied",
           "Pilot window: Circle Yield (4.6% APY)",
@@ -768,7 +768,7 @@ export async function registerRoutes(
         agent: "Recon Agent",
         severity: "warning",
         title: "2 ERP mismatches on NovaBridge (QuickBooks)",
-        body: "$412.50 and $188.00 variance detected \u2014 likely FX timing. Auto-reconcile candidate.",
+        body: "$14,820 and $6,430 variance detected \u2014 likely FX timing. Auto-reconcile candidate.",
         rationale: [
           "Variance <1% of invoice value",
           "Timing pattern: end-of-day FX mark",
@@ -861,8 +861,8 @@ export async function registerRoutes(
       tenant: "Volta Digital Agency",
       product: "Invoice Factoring",
       corridor: "US\u2192MX",
-      requestedLimit: 180000,
-      recommendedLimit: 150000,
+      requestedLimit: 14500000,
+      recommendedLimit: 12500000,
       score: 78,
       decision: "Recommend \u2014 Human Gate 4 Review",
       policyVersion: "ACB v4.12",
@@ -878,7 +878,7 @@ export async function registerRoutes(
       guardrails: [
         "Max advance rate: 85%",
         "Buyer concentration cap: 25%",
-        "Corridor cap (US\u2192MX): $400K per tenant",
+        "Corridor cap (US\u2192MX): $30M per tenant",
       ],
       redactedNote: "Factor weights are lender-confidential and not exposed in public demo.",
     });
@@ -959,13 +959,13 @@ export async function registerRoutes(
   app.get("/api/engine/events", (_req, res) => {
     const now = Date.now();
     res.json([
-      { ts: new Date(now - 1000 * 60 * 2).toISOString(), domain: "credit", event: "advance.proposed", subject: "INV-2041", detail: "Factoring advance proposed, $38,250" },
+      { ts: new Date(now - 1000 * 60 * 2).toISOString(), domain: "credit", event: "advance.proposed", subject: "INV-2041", detail: "Factoring advance proposed, $2.38M" },
       { ts: new Date(now - 1000 * 60 * 6).toISOString(), domain: "compliance", event: "kyb.refresh.queued", subject: "Bucharest Dynamics", detail: "Annual refresh window opens" },
-      { ts: new Date(now - 1000 * 60 * 11).toISOString(), domain: "treasury", event: "sweep.suggested", subject: "FBO-USDC", detail: "Idle $45K \u2192 Circle Yield pilot" },
-      { ts: new Date(now - 1000 * 60 * 18).toISOString(), domain: "recon", event: "variance.auto_resolved", subject: "QB-8820", detail: "FX timing variance $188.00" },
+      { ts: new Date(now - 1000 * 60 * 11).toISOString(), domain: "treasury", event: "sweep.suggested", subject: "FBO-USDC", detail: "Idle $1.25M \u2192 Circle Yield pilot" },
+      { ts: new Date(now - 1000 * 60 * 18).toISOString(), domain: "recon", event: "variance.auto_resolved", subject: "QB-8820", detail: "FX timing variance $6,430" },
       { ts: new Date(now - 1000 * 60 * 27).toISOString(), domain: "policy", event: "acb.deployed", subject: "v4.12", detail: "Replay sample 142 cases; approval +1.8%" },
       { ts: new Date(now - 1000 * 60 * 41).toISOString(), domain: "credit", event: "case.gate3.pass", subject: "CS-2045", detail: "NovaBridge RBF \u2014 auto-routed to Gate 4" },
-      { ts: new Date(now - 1000 * 60 * 58).toISOString(), domain: "credit", event: "decision.issued", subject: "CS-2038", detail: "Approved $120K factoring \u2014 time-to-decision 3.8 min" },
+      { ts: new Date(now - 1000 * 60 * 58).toISOString(), domain: "credit", event: "decision.issued", subject: "CS-2038", detail: "Approved $9.5M factoring \u2014 time-to-decision 3.8 min" },
     ]);
   });
 
@@ -973,9 +973,9 @@ export async function registerRoutes(
     // Borrowing base preview — permissioned view, redacted in public demo
     res.json({
       reportingPeriod: "2026-03-01 \u2192 2026-03-31",
-      borrowingBase: 4210000,
-      eligiblePool: 3680000,
-      reserves: { dilution: 212000, concentration: 148000, aging: 170000 },
+      borrowingBase: 148500000,
+      eligiblePool: 128200000,
+      reserves: { dilution: 7450000, concentration: 5180000, aging: 5950000 },
       yieldNetBps: 1820,
       lossProxyBps: 28,
       sampleCases: 142,
