@@ -1,21 +1,54 @@
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PerplexityAttribution } from "@/components/PerplexityAttribution";
-import { DollarSign, Users, TrendingUp, Clock, FileText, Brain, Shield } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { StatusPill } from "@/components/StatusPill";
+import {
+  Wallet,
+  ReceiptText,
+  CircleDollarSign,
+  Timer,
+  ArrowUpRight,
+  Sparkles,
+  ChevronRight,
+} from "lucide-react";
 import { Link } from "wouter";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import type { Transaction } from "@shared/schema";
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
+function formatCurrency(value: number, maximumFractionDigits = 0) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits,
+  }).format(value);
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -26,96 +59,197 @@ function StatusBadge({ status }: { status: string }) {
     failed: "badge-failed",
   };
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${variants[status] || "badge-draft"}`} data-testid={`status-badge-${status}`}>
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${variants[status] || "badge-draft"}`}
+      data-testid={`status-badge-${status}`}
+    >
       {status.charAt(0).toUpperCase() + status.slice(1)}
     </span>
   );
 }
 
+interface LiquiditySummary {
+  availableLiquidity: number;
+  eligibleReceivables: number;
+  activeAdvances: number;
+  nextSettlementHours: number;
+  undrawnFacility: number;
+  advanceRateBps: number;
+}
+
+interface CorridorRow {
+  corridor: string;
+  volume: number;
+  transactionCount: number;
+  avgSettlementTime: number;
+  eligibilityPct: number;
+}
+
+interface AgentHint {
+  id: string;
+  agent: string;
+  severity: string;
+  title: string;
+  body: string;
+  amount?: number;
+  ctaLabel: string;
+  ctaHref?: string;
+}
+
 export default function Dashboard() {
-  const { data: stats, isLoading: statsLoading } = useQuery<{
-    totalVolume: number; activeClients: number; revenueMtd: number; avgSettlementSpeed: number;
-  }>({ queryKey: ["/api/dashboard/stats"] });
-
-  const { data: cashflow, isLoading: cashflowLoading } = useQuery<Array<{ date: string; inbound: number; outbound: number }>>({
-    queryKey: ["/api/dashboard/cashflow"],
+  const { data: liquidity, isLoading: liqLoading } = useQuery<LiquiditySummary>(
+    { queryKey: ["/api/dashboard/liquidity"] }
+  );
+  const { data: cashflow } = useQuery<
+    Array<{ date: string; inbound: number; outbound: number }>
+  >({ queryKey: ["/api/dashboard/cashflow"] });
+  const { data: corridors } = useQuery<CorridorRow[]>({
+    queryKey: ["/api/dashboard/corridors"],
   });
-
-  const { data: corridors, isLoading: corridorsLoading } = useQuery<Array<{
-    corridor: string; volume: number; transactionCount: number; avgSettlementTime: number;
-  }>>({ queryKey: ["/api/dashboard/corridors"] });
-
-  const { data: recentTxns, isLoading: txnsLoading } = useQuery<Transaction[]>({
+  const { data: recentTxns } = useQuery<Transaction[]>({
     queryKey: ["/api/dashboard/recent-transactions"],
   });
+  const { data: topHints = [] } = useQuery<AgentHint[]>({
+    queryKey: ["/api/action-rail"],
+  });
+
+  const hints = topHints.slice(0, 3);
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
-      <div className="flex items-center justify-between">
+      {/* Tenant header */}
+      <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-bold" style={{ fontFamily: "'Cabinet Grotesk', sans-serif" }} data-testid="text-page-title">
-            Dashboard
+          <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider">
+            <span>Meridian Software</span>
+            <span className="text-muted-foreground/50">·</span>
+            <span>US → AR</span>
+            <StatusPill stage="live">Facility Live</StatusPill>
+          </div>
+          <h1
+            className="text-2xl font-bold mt-1"
+            style={{ fontFamily: "'Cabinet Grotesk', sans-serif" }}
+            data-testid="text-page-title"
+          >
+            Financial OS
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Real-time overview of Atlas operations</p>
+          <p className="text-sm text-muted-foreground mt-0.5 max-w-2xl">
+            Real-time view of your cross-border liquidity, receivables, and
+            credit. Underwriting runs continuously on your live operating data —
+            not stale statements.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="rounded-md border border-border bg-card px-3 py-1.5 text-xs">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              Policy
+            </div>
+            <div className="tabular-nums">ACB v4.12</div>
+          </div>
+          <div className="rounded-md border border-border bg-card px-3 py-1.5 text-xs">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              Environment
+            </div>
+            <div>V3 · Demo</div>
+          </div>
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards - tenant-facing */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statsLoading ? (
+        {liqLoading || !liquidity ? (
           Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i}><CardContent className="p-4"><Skeleton className="h-16 w-full" /></CardContent></Card>
+            <Card key={i}>
+              <CardContent className="p-4">
+                <Skeleton className="h-16 w-full" />
+              </CardContent>
+            </Card>
           ))
         ) : (
           <>
-            <Card data-testid="card-total-volume">
+            <Card data-testid="card-available-liquidity">
               <CardContent className="p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Total Volume</p>
-                    <p className="text-xl font-bold tabular-nums mt-1">{formatCurrency(stats?.totalVolume || 0)}</p>
+                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                      Available Liquidity
+                    </p>
+                    <p className="text-2xl font-bold tabular-nums mt-1">
+                      {formatCurrency(liquidity.availableLiquidity)}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Cash + undrawn facility{" "}
+                      <span className="tabular-nums">
+                        ({formatCurrency(liquidity.undrawnFacility)})
+                      </span>
+                    </p>
                   </div>
                   <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <DollarSign className="h-5 w-5 text-primary" />
+                    <Wallet className="h-5 w-5 text-primary" />
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card data-testid="card-active-clients">
+            <Card data-testid="card-eligible-receivables">
               <CardContent className="p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Active Clients</p>
-                    <p className="text-xl font-bold tabular-nums mt-1">{stats?.activeClients || 0}</p>
+                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                      Eligible Receivables
+                    </p>
+                    <p className="text-2xl font-bold tabular-nums mt-1">
+                      {formatCurrency(liquidity.eligibleReceivables)}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Factorable now at{" "}
+                      <span className="tabular-nums">
+                        {(liquidity.advanceRateBps / 100).toFixed(1)}%
+                      </span>{" "}
+                      advance rate
+                    </p>
                   </div>
                   <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                    <Users className="h-5 w-5 text-emerald-500" />
+                    <ReceiptText className="h-5 w-5 text-emerald-500" />
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card data-testid="card-revenue-mtd">
+            <Card data-testid="card-active-advances">
               <CardContent className="p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Revenue (MTD)</p>
-                    <p className="text-xl font-bold tabular-nums mt-1">{formatCurrency(stats?.revenueMtd || 0)}</p>
+                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                      Active Advances
+                    </p>
+                    <p className="text-2xl font-bold tabular-nums mt-1">
+                      {formatCurrency(liquidity.activeAdvances)}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Across factoring + RBF at cost
+                    </p>
                   </div>
                   <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                    <TrendingUp className="h-5 w-5 text-amber-500" />
+                    <CircleDollarSign className="h-5 w-5 text-amber-500" />
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card data-testid="card-settlement-speed">
+            <Card data-testid="card-next-settlement">
               <CardContent className="p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Avg Settlement</p>
-                    <p className="text-xl font-bold tabular-nums mt-1">{stats?.avgSettlementSpeed || 0}h</p>
+                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                      Next Settlement
+                    </p>
+                    <p className="text-2xl font-bold tabular-nums mt-1">
+                      {liquidity.nextSettlementHours.toFixed(1)}h
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Hybrid rails · stablecoin + SWIFT
+                    </p>
                   </div>
                   <div className="h-10 w-10 rounded-lg bg-violet-500/10 flex items-center justify-center">
-                    <Clock className="h-5 w-5 text-violet-500" />
+                    <Timer className="h-5 w-5 text-violet-500" />
                   </div>
                 </div>
               </CardContent>
@@ -124,169 +258,193 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Cash Flow Chart */}
-      <Card data-testid="card-cashflow-chart">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold">Cash Flow — Last 30 Days</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {cashflowLoading ? (
-            <Skeleton className="h-[250px] w-full" />
-          ) : (
-            <ResponsiveContainer width="100%" height={250}>
-              <AreaChart data={cashflow || []} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorInbound" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(199 89% 48%)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(199 89% 48%)" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="colorOutbound" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(45 93% 47%)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(45 93% 47%)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(217 33% 17%)" opacity={0.3} />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={(v) => new Date(v).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                  tick={{ fontSize: 11, fill: "hsl(215 20% 65%)" }}
-                  tickLine={false}
-                  axisLine={false}
-                  interval="preserveStartEnd"
-                />
-                <YAxis
-                  tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
-                  tick={{ fontSize: 11, fill: "hsl(215 20% 65%)" }}
-                  tickLine={false}
-                  axisLine={false}
-                  width={50}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(222 47% 9%)",
-                    border: "1px solid hsl(217 33% 17%)",
-                    borderRadius: "8px",
-                    color: "hsl(210 40% 98%)",
-                    fontSize: 12,
-                  }}
-                  formatter={(value: number) => [formatCurrency(value), undefined]}
-                  labelFormatter={(label) => new Date(label).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-                />
-                <Area type="monotone" dataKey="inbound" stroke="hsl(199 89% 48%)" fill="url(#colorInbound)" strokeWidth={2} name="Inbound" />
-                <Area type="monotone" dataKey="outbound" stroke="hsl(45 93% 47%)" fill="url(#colorOutbound)" strokeWidth={2} name="Outbound" />
-              </AreaChart>
-            </ResponsiveContainer>
-          )}
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Corridor Activity */}
-        <Card data-testid="card-corridor-activity">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">Corridor Activity</CardTitle>
+      {/* AI Suggested Actions strip */}
+      {hints.length > 0 && (
+        <Card data-testid="card-ai-actions">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <CardTitle className="text-sm font-semibold uppercase tracking-wider">
+                AI-Suggested Actions
+              </CardTitle>
+            </div>
+            <span className="text-[11px] text-muted-foreground">
+              Explainable · reversible · human-in-loop
+            </span>
           </CardHeader>
-          <CardContent>
-            {corridorsLoading ? (
-              <Skeleton className="h-[200px] w-full" />
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs">Corridor</TableHead>
-                    <TableHead className="text-xs text-right">Volume</TableHead>
-                    <TableHead className="text-xs text-right">Txns</TableHead>
-                    <TableHead className="text-xs text-right">Avg Time</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(corridors || []).map((c) => (
-                    <TableRow key={c.corridor} data-testid={`row-corridor-${c.corridor}`}>
-                      <TableCell className="font-medium text-sm">{c.corridor}</TableCell>
-                      <TableCell className="text-right text-sm tabular-nums">{formatCurrency(c.volume)}</TableCell>
-                      <TableCell className="text-right text-sm tabular-nums">{c.transactionCount}</TableCell>
-                      <TableCell className="text-right text-sm tabular-nums">{c.avgSettlementTime}h</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Recent Transactions */}
-        <Card data-testid="card-recent-transactions">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">Recent Transactions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {txnsLoading ? (
-              <Skeleton className="h-[200px] w-full" />
-            ) : (
-              <div className="space-y-2">
-                {(recentTxns || []).slice(0, 8).map((txn) => (
-                  <div
-                    key={txn.id}
-                    className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0"
-                    data-testid={`row-transaction-${txn.id}`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className={`h-2 w-2 rounded-full flex-shrink-0 ${
-                        txn.type === "inbound" ? "bg-emerald-500" : txn.type === "outbound" ? "bg-amber-500" : "bg-primary"
-                      }`} />
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{txn.corridor}</p>
-                        <p className="text-xs text-muted-foreground">{txn.type} · {formatDate(txn.createdAt)}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-sm font-medium tabular-nums">{formatCurrency(txn.amount)}</span>
-                      <StatusBadge status={txn.status} />
-                    </div>
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {hints.map((h) => (
+                <Link
+                  key={h.id}
+                  href={h.ctaHref || "/credit"}
+                  className="group rounded-lg border border-border bg-card p-3 hover-elevate"
+                  data-testid={`dash-action-${h.id}`}
+                >
+                  <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                    {h.agent}
                   </div>
-                ))}
-              </div>
-            )}
+                  <div className="mt-1 text-sm font-medium leading-snug">
+                    {h.title}
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground line-clamp-2">
+                    {h.body}
+                  </div>
+                  <div className="mt-2 flex items-center justify-between">
+                    {h.amount != null ? (
+                      <span className="text-sm font-semibold tabular-nums">
+                        {formatCurrency(h.amount)}
+                      </span>
+                    ) : (
+                      <span />
+                    )}
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-primary group-hover:translate-x-0.5 transition">
+                      {h.ctaLabel}
+                      <ChevronRight className="h-3 w-3" />
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </CardContent>
         </Card>
-      </div>
+      )}
 
-      {/* Quick Actions */}
-      <Card data-testid="card-quick-actions">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold">Quick Actions</CardTitle>
+      {/* Cashflow chart */}
+      <Card data-testid="card-cashflow">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+          <div>
+            <CardTitle className="text-sm font-semibold uppercase tracking-wider">
+              Cross-Border Cash Flow · Last 30 Days
+            </CardTitle>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Inbound receivables vs. outbound payouts across corridors
+            </p>
+          </div>
+          <StatusPill stage="live" />
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-3">
-            <Link href="/invoices">
-              <Button variant="outline" size="sm" data-testid="button-new-invoice">
-                <FileText className="h-4 w-4 mr-2" />
-                New Invoice
-              </Button>
-            </Link>
-            <Link href="/credit">
-              <Button variant="outline" size="sm" data-testid="button-credit-assessment">
-                <Brain className="h-4 w-4 mr-2" />
-                Credit Assessment
-              </Button>
-            </Link>
-            <Link href="/compliance">
-              <Button variant="outline" size="sm" data-testid="button-compliance-check">
-                <Shield className="h-4 w-4 mr-2" />
-                Compliance Check
-              </Button>
-            </Link>
-            <Link href="/credit">
-              <Button variant="outline" size="sm" data-testid="button-new-rbf-request">
-                <DollarSign className="h-4 w-4 mr-2" />
-                New RBF Request
-              </Button>
-            </Link>
+          <div className="h-56">
+            {cashflow && (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={cashflow}>
+                  <defs>
+                    <linearGradient id="in" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(199 89% 48%)" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="hsl(199 89% 48%)" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="out" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(45 93% 47%)" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="hsl(45 93% 47%)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={formatDate}
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                    formatter={(v: number) => formatCurrency(v)}
+                  />
+                  <Area type="monotone" dataKey="inbound" stroke="hsl(199 89% 48%)" fill="url(#in)" strokeWidth={2} />
+                  <Area type="monotone" dataKey="outbound" stroke="hsl(45 93% 47%)" fill="url(#out)" strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </CardContent>
       </Card>
 
-      <PerplexityAttribution />
+      {/* Corridor + Recent */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-2" data-testid="card-corridors">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <div>
+              <CardTitle className="text-sm font-semibold uppercase tracking-wider">
+                Corridor Activity
+              </CardTitle>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Volume, settlement speed, and factoring eligibility per corridor
+              </p>
+            </div>
+            <StatusPill stage="live" />
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-[10px] uppercase tracking-wider">Corridor</TableHead>
+                  <TableHead className="text-[10px] uppercase tracking-wider text-right">Volume (30d)</TableHead>
+                  <TableHead className="text-[10px] uppercase tracking-wider text-right">Txns</TableHead>
+                  <TableHead className="text-[10px] uppercase tracking-wider text-right">Avg Settle</TableHead>
+                  <TableHead className="text-[10px] uppercase tracking-wider text-right">Eligible</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(corridors || []).slice(0, 7).map((c) => (
+                  <TableRow key={c.corridor} data-testid={`corridor-row-${c.corridor}`}>
+                    <TableCell className="font-medium">{c.corridor}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatCurrency(c.volume)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{c.transactionCount}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {c.avgSettlementTime > 0 ? `${c.avgSettlementTime.toFixed(1)}h` : "—"}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {c.eligibilityPct ? `${c.eligibilityPct.toFixed(0)}%` : "—"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="card-recent-transactions">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-semibold uppercase tracking-wider">
+              Recent Activity
+            </CardTitle>
+            <Link
+              href="/invoices"
+              className="text-xs text-primary hover:text-primary/80 inline-flex items-center gap-1"
+            >
+              All <ArrowUpRight className="h-3 w-3" />
+            </Link>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {(recentTxns || []).slice(0, 6).map((t) => (
+              <div
+                key={t.id}
+                className="flex items-center justify-between text-xs"
+                data-testid={`txn-row-${t.id}`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">{t.corridor}</span>
+                  <StatusBadge status={t.status} />
+                </div>
+                <span className="font-medium tabular-nums">
+                  {formatCurrency(t.amount)}
+                </span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

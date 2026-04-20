@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
-import { PerplexityAttribution } from "@/components/PerplexityAttribution";
 import { BarChart3, Users, Package, TrendingUp, Lightbulb, Check, Minus } from "lucide-react";
 
 type ProductUtilization = {
@@ -238,8 +237,6 @@ export default function AnalyticsPage() {
           )}
         </CardContent>
       </Card>
-
-      <PerplexityAttribution />
-    </div>
+</div>
   );
 }

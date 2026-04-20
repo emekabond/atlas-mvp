@@ -8,7 +8,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PerplexityAttribution } from "@/components/PerplexityAttribution";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { CreditCard, DollarSign, TrendingUp, Wallet, Plus, Snowflake, Zap, Banknote } from "lucide-react";
@@ -578,8 +577,6 @@ export default function CardsPage() {
         onOpenChange={setIssueDialogOpen}
         clients={clientList || []}
       />
-
-      <PerplexityAttribution />
-    </div>
+</div>
   );
 }

@@ -1,418 +1,959 @@
-import React from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
+import {
+  Activity,
+  Database,
+  GitBranch,
+  Gauge,
+  FileText,
+  ShieldCheck,
+  Cpu,
+  Radio,
+  Lock,
+  Layers,
+  ExternalLink,
+  ChevronRight,
+  X,
+  CheckCircle2,
+  CircleAlert,
+} from "lucide-react";
 
+// ---------- Types ----------
+interface EngineStatus {
+  policyVersion: string;
+  deployedAt: string;
+  casesToday: number;
+  autoDecisionedPct: number;
+  medianTimeToDecisionMin: number;
+  agents: Array<{ name: string; status: string }>;
+  queueDepth: number;
+  slaBreachRate: number;
+}
+interface Fabric {
+  sources: Array<{ name: string; coverage: string; freshnessMin: number; status: string }>;
+  pipeline: Array<{ stage: string; detail: string }>;
+  anomaliesLast24h: number;
+}
+interface QueueData {
+  gates: Array<{ gate: number; name: string; passRate: number; medianMs: number }>;
+  cases: Array<{ id: string; tenant: string; product: string; gate: number; waitMin: number; status: string }>;
+}
+interface Memo {
+  caseId: string;
+  tenant: string;
+  product: string;
+  corridor: string;
+  requestedLimit: number;
+  recommendedLimit: number;
+  score: number;
+  decision: string;
+  policyVersion: string;
+  factors: Array<{ factor: string; signal: string; value: string; direction: string; weight: string }>;
+  guardrails: string[];
+  redactedNote: string;
+}
+interface Policy {
+  current: string;
+  previous: string;
+  deployedAt: string;
+  diff: Array<{ path: string; from: string; to: string; reason: string }>;
+  replayable: boolean;
+  replaySampleSize: number;
+  replayImpact: { decisionsChanged: number; approvalDelta: string; lossProxyDelta: string };
+}
+interface Monitoring {
+  covenants: Array<{ tenant: string; metric: string; value: number; threshold: number; status: string }>;
+  earlyWarnings: Array<{ tenant: string; signal: string; severity: string }>;
+}
+interface AgentRow {
+  name: string;
+  role: string;
+  status: string;
+  actionsToday: number;
+  escalationRate: number;
+}
+interface EngineEvent {
+  ts: string;
+  domain: string;
+  event: string;
+  subject: string;
+  detail: string;
+}
+interface Lender {
+  reportingPeriod: string;
+  borrowingBase: number;
+  eligiblePool: number;
+  reserves: { dilution: number; concentration: number; aging: number };
+  yieldNetBps: number;
+  lossProxyBps: number;
+  sampleCases: number;
+  watermark: string;
+}
 
-function EngineRoom() {
+// ---------- Primitives ----------
+function Section({
+  id,
+  icon: Icon,
+  title,
+  kicker,
+  children,
+}: {
+  id: string;
+  icon: React.ElementType;
+  title: string;
+  kicker: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="min-h-screen bg-black text-slate-100">
-      {/* Debug banner to confirm routing works */}
-      <div className="w-full bg-black text-lime-400 px-4 py-3 text-sm">
-        <strong>Engine Room loaded</strong> – if you see this, the route is wired correctly.
-      </div>
-
-      {/* Page shell */}
-      <div className="max-w-6xl mx-auto px-6 py-10 space-y-10">
-        {/* Header */}
-        <header className="flex flex-col gap-4 border-b border-slate-800 pb-6">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-semibold text-white">
-                Atlas Engine Room
-              </h1>
-              <p className="mt-1 text-sm text-slate-300 max-w-xl">
-                The underlying rails and autonomous agents that actually move
-                dollars, data, and decisions across the Atlas OS – safely,
-                programmatically, and at scale.
-              </p>
-            </div>
-            <div className="flex items-center gap-3 text-xs text-slate-300">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/40">
-                <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Engine Room online</span>
-              </div>
-            </div>
+    <section id={id} className="scroll-mt-20 border-t border-slate-800 pt-10">
+      <div className="flex items-baseline justify-between gap-4 flex-wrap">
+        <div>
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-slate-500">
+            <Icon className="h-3.5 w-3.5 text-slate-400" />
+            <span>{kicker}</span>
           </div>
-
-          <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400">
-            <div className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
-              <span>Hybrid rails: cards, accounts, ledgers, messaging, custody</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-              <span>Autonomous agents: credit, compliance, fraud, treasury, reconciliation </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-violet-400" />
-              <span>Revenue flywheel: credit, margin, float, interchange, SaaS</span>
-            </div>
-          </div>
-        </header>
-
-        {/* Three-column layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Column 1: Hybrid Rails */}
-          <section className="space-y-4">
-            <h2 className="text-sm font-semibold text-slate-200 tracking-wide uppercase">
-              Hybrid rails
-            </h2>
-            <p className="text-xs text-slate-300">
-              Atlas abstracts messy, multi‑party infrastructure into clean,
-              programmable rails you can compose like Lego: fiat, stablecoins,
-              stored‑value, and messaging all live in one coherent surface.
-            </p>
-
-            <div className="space-y-3">
-              {/* Card program */}
-              <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-100">
-                    Card + account program
-                  </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-300 border border-sky-500/30">
-                    Onboarded
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-300">
-                  BIN sponsorship, issuing, and accounts unified behind a single
-                  Atlas API so engineers never think in “processors,” only in
-                  customers, balances, and entitlements.
-                </p>
-                <ul className="text-[11px] text-slate-400 space-y-1 list-disc list-inside">
-                  <li>Issue cards and accounts per workspace and sub‑entity</li>
-                  <li>Program fees, limits, and controls at the rail level</li>
-                  <li>Expose only safe, productized operations to the OS</li>
-                </ul>
-              </div>
-
-              {/* Ledger & balances */}
-              <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-100">
-                    Unified ledger & balances
-                  </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
-                    Strongly typed
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-300">
-                  A single source of truth for money in motion – every rail,
-                  every counterparty, every edge case reconciled back to the
-                  same ledger primitives.
-                </p>
-                <ul className="text-[11px] text-slate-400 space-y-1 list-disc list-inside">
-                  <li>Multi‑currency, multi‑entity, multi‑rail balances</li>
-                  <li>Explicit states, not stringly‑typed status fields</li>
-                  <li>Designed for financial correctness from day one</li>
-                </ul>
-              </div>
-
-              {/* Messaging & workflows */}
-              <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-100">
-                    Messaging & workflow bus
-                  </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30">
-                    Orchestrated
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-300">
-                  A deterministic event bus that turns raw bank files, card
-                  auths, ledger updates, and third‑party signals into clean
-                  events the OS and agents can reason about.
-                </p>
-                <ul className="text-[11px] text-slate-400 space-y-1 list-disc list-inside">
-                  <li>Normalizes bank, card, and crypto semantics</li>
-                  <li>Guaranteed ordering for flows that must never race</li>
-                  <li>Replayable for audits, debugging, and forensics</li>
-                </ul>
-              </div>
-            </div>
-          </section>
-
-          {/* Column 2: Autonomous Agents */}
-          <section className="space-y-4">
-            <h2 className="text-sm font-semibold text-slate-200 tracking-wide uppercase">
-              Autonomous agents
-            </h2>
-            <p className="text-xs text-slate-300">
-              On top of those rails, Atlas runs a fleet of narrow, aligned
-              agents that each own a small, critical responsibility – from KYC
-              to credit to treasury – with humans firmly in the loop.
-            </p>
-
-                      <div className="space-y-3">
-            {/* Credit Agent */}
-            <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 space-y-2">
-    <div className="flex items-center justify-between">
-      <span className="text-xs font-medium text-slate-100">
-        Credit Agent
-      </span>
-      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
-        Revenue engine
-      </span>
-    </div>
-    <p className="text-[11px] text-slate-300">
-      Orchestrates invoice factoring, revenue-based financing, working
-      capital lines, and bridge loans on top of Atlas rails and data.
-      It prices risk using closed-loop cash flow and behavior data
-      across all corridors and products.
-    </p>
-    <ul className="text-[11px] text-slate-400 space-y-1 list-disc list-inside">
-      <li>Underwrites off real-time invoices, receivables, and flows</li>
-      <li>Structures credit terms and limits per customer and corridor</li>
-      <li>Feeds live performance back into pricing and eligibility</li>
-    </ul>
-  </div>
-
-  {/* Onboarding Agent */}
-  <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 space-y-2">
-    <div className="flex items-center justify-between">
-      <span className="text-xs font-medium text-slate-100">
-        Onboarding Agent
-      </span>
-      <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-300 border border-sky-500/30">
-        Speed focused
-      </span>
-    </div>
-    <p className="text-[11px] text-slate-300">
-      Primary interface with customers, driving them from “hello” to
-      “account active” as fast as possible while collecting the data
-      the Engine Room needs.
-    </p>
-    <ul className="text-[11px] text-slate-400 space-y-1 list-disc list-inside">
-      <li>Coordinates applications, docs, and required checks</li>
-      <li>Optimizes for completion rate and time-to-first-transaction</li>
-      <li>Hands off clean profiles to Compliance and Credit agents</li>
-    </ul>
-  </div>
-
-              {/* Compliance Agent */}
-              <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-100">
-                    Compliance Agent
-                  </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
-                    Guardrailed
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-300">
-                  Automates most KYC / KYB decisions and ongoing monitoring decisions while escalating edge
-                  cases, keeping operators in control and regulators
-                  comfortable.
-                </p>
-                <ul className="text-[11px] text-slate-400 space-y-1 list-disc list-inside">
-                  <li>Pulls from multiple KYC/KYB providers</li>
-                  <li>Writes back structured risk decisions to the OS</li>
-                  <li>Surfaces only the exceptions to humans</li>
-                </ul>
-              </div>
-
-              {/* Fraud / Risk Agent */}
-              <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-100">
-                    Fraud and Risk Agent
-                  </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/30">
-                    Protective
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-300">
-                  Monitors transactions, behaviors, and counterparties in
-                  real‑time, and suggests interventions instead of quietly
-                  blocking good customers.
-                </p>
-                <ul className="text-[11px] text-slate-400 space-y-1 list-disc list-inside">
-                  <li>Continuous scoring from ledger + network data</li>
-                  <li>Configurable risk appetites per workspace</li>
-                  <li>Explains “why” for every suggested action</li>
-                </ul>
-              </div>
-
-              {/* Treasury / Liquidity Agent */}
-              <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-100">
-                    Treasury & Liquidity Agent
-                  </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-300 border border-sky-500/30">
-                    Capital aware
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-300">
-                  Keeps float safe and productive: moving funds between partners,
-                  accounts, and instruments in line with policy and constraints.
-                </p>
-                <ul className="text-[11px] text-slate-400 space-y-1 list-disc list-inside">
-                  <li>Understands operational, regulatory, and economic limits</li>
-                  <li>Targets utilization, not just “max yield”</li>
-                  <li>Surfaces playbook‑grade recommendations to finance teams</li>
-                </ul>
-              </div>
-
-              {/* Reconciliation Agent */}
-              <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-100">
-                    Reconciliation & Reporting Agent
-                  </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-300 border border-violet-500/30">
-                    Audit ready
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-300">
-                  Continuously ties Atlas’s internal view back to bank, card,
-                  and custodial records so CFOs, auditors, and regulators can
-                  trust every number.
-                </p>
-                <ul className="text-[11px] text-slate-400 space-y-1 list-disc list-inside">
-                  <li>Automated variance detection and explanations</li>
-                  <li>Drill‑downs from OS screens to source events</li>
-                  <li>Exportable evidence for audits and board packs</li>
-                </ul>
-              </div>
-            </div>
-          </section>
-
-          {/* Column 3: Revenue Flywheel */}
-          <section className="space-y-4">
-            <h2 className="text-sm font-semibold text-slate-200 tracking-wide uppercase">
-              Revenue Flywheel
-            </h2>
-            <p className="text-xs text-slate-300">
-              The Engine Room doesn’t just keep the machine running – it drives
-              margin. Atlas is built so every useful workflow, especially credit and financing, can attach to one
-              of a few durable monetization primitives.
-            </p>
-
-            <div className="space-y-3">
-                {/* Origination & financing fees */}
-<div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 space-y-2">
-  <div className="flex items-center justify-between">
-    <span className="text-xs font-medium text-slate-100">
-      Origination & financing fees
-    </span>
-    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
-      Credit revenue
-    </span>
-  </div>
-  <p className="text-[11px] text-slate-300">
-    Atlas earns upfront origination fees and ongoing yield or
-    revenue-share on invoice factoring, revenue-based financing,
-    working capital, and bridge facilities originated through the OS.
-  </p>
-  <ul className="text-[11px] text-slate-400 space-y-1 list-disc list-inside">
-    <li>Tied directly to closed-loop data from the Engine Room</li>
-    <li>Improves with each cohort of borrowers and performance data</li>
-    <li>Stacks on top of existing payments and FX economics</li>
-  </ul>
-</div>
-
-              {/* Margin on flows */}
-              <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-100">
-                    Margin on money in motion
-                  </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
-                    Core flywheel
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-300">
-                  Interchange, FX spread, payment fees, and yield on safe
-                  instruments – concentrated into a clean, auditable engine
-                  rather than one‑off deals per customer.
-                </p>
-                <ul className="text-[11px] text-slate-400 space-y-1 list-disc list-inside">
-                  <li>Standardized economics across use cases</li>
-                  <li>Portfolio‑level optimization, not account by account</li>
-                  <li>Clear unit economics from day one</li>
-                </ul>
-              </div>
-
-              {/* SaaS + usage */}
-              <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-100">
-                    SaaS + usage layers
-                  </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-300 border border-sky-500/30">
-                    Durable
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-300">
-                  Workspaces pay for the OS, not just the rails – giving Atlas
-                  a software‑like multiple on top of financial infrastructure
-                  economics.
-                </p>
-                <ul className="text-[11px] text-slate-400 space-y-1 list-disc list-inside">
-                  <li>Per‑workspace and per‑seat plans</li>
-                  <li>Usage‑based pricing for high‑value workflows</li>
-                  <li>Room for premium “agent packs” over time</li>
-                </ul>
-              </div>
-
-              {/* Partner leverage */}
-              <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-100">
-                    Partner leverage
-                  </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30">
-                    Distribution
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-300">
-                  By abstracting partners behind the Engine Room, Atlas can add
-                  new rails and geographies without re‑architecting the product
-                  or confusing customers.
-                </p>
-                <ul className="text-[11px] text-slate-400 space-y-1 list-disc list-inside">
-                  <li>Swap or add partners without UI churn</li>
-                  <li>Negotiate from a portfolio, not single‑customer, view</li>
-                  <li>Share upside where it enhances distribution</li>
-                </ul>
-              </div>
-
-              {/* Strategic metrics */}
-              <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-100">
-                    Strategic metrics
-                  </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-300 border border-violet-500/30">
-                    Board‑grade
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-300">
-                  The same plumbing that powers customers also powers Atlas’s
-                  own brain: LTV/CAC, payback, contribution margin by rail and
-                  by segment.
-                </p>
-                <ul className="text-[11px] text-slate-400 space-y-1 list-disc list-inside">
-                  <li>Financial and product metrics from the same source</li>
-                  <li>Supports credible venture‑scale underwriting</li>
-                  <li>Makes “Engine Room” legible to investors and regulators</li>
-                </ul>
-              </div>
-            </div>
-          </section>
+          <h2 className="mt-1 text-xl font-semibold text-white tracking-tight">
+            {title}
+          </h2>
         </div>
+        <a
+          href={`#${id}`}
+          className="text-[11px] text-slate-500 hover:text-slate-300"
+        >
+          #{id}
+        </a>
+      </div>
+      <div className="mt-5">{children}</div>
+    </section>
+  );
+}
 
-        {/* Footer back link */}
-        <div className="pt-2 border-t border-slate-800 mt-4">
-          <a
-            href="/"
-            className="inline-flex items-center gap-1 text-xs text-slate-300 hover:text-white underline underline-offset-4"
-          >
-            <span>← Back to Atlas Operator OS</span>
-          </a>
+function Pill({
+  children,
+  tone = "slate",
+}: {
+  children: React.ReactNode;
+  tone?: "slate" | "emerald" | "amber" | "sky" | "violet" | "rose";
+}) {
+  const map: Record<string, string> = {
+    slate: "bg-slate-500/10 text-slate-300 border-slate-500/30",
+    emerald: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30",
+    amber: "bg-amber-500/10 text-amber-300 border-amber-500/30",
+    sky: "bg-sky-500/10 text-sky-300 border-sky-500/30",
+    violet: "bg-violet-500/10 text-violet-300 border-violet-500/30",
+    rose: "bg-rose-500/10 text-rose-300 border-rose-500/30",
+  };
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${map[tone]}`}
+    >
+      <span className="h-1 w-1 rounded-full bg-current opacity-80" />
+      {children}
+    </span>
+  );
+}
+
+function StageTone(stage: string): "emerald" | "amber" | "sky" | "violet" | "slate" {
+  if (stage === "live" || stage === "healthy") return "emerald";
+  if (stage === "pilot" || stage === "degraded" || stage === "watch") return "amber";
+  if (stage === "preview") return "sky";
+  if (stage === "scaffold") return "violet";
+  return "slate";
+}
+
+function Stat({ label, value, foot }: { label: string; value: string; foot?: string }) {
+  return (
+    <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-4">
+      <div className="text-[10px] uppercase tracking-wider text-slate-500">
+        {label}
+      </div>
+      <div className="mt-1 text-2xl font-semibold text-white tabular-nums">
+        {value}
+      </div>
+      {foot && <div className="mt-1 text-[11px] text-slate-500">{foot}</div>}
+    </div>
+  );
+}
+
+function formatTimeAgo(iso: string) {
+  const diff = (Date.now() - new Date(iso).getTime()) / 60000;
+  if (diff < 1) return "just now";
+  if (diff < 60) return `${Math.round(diff)}m ago`;
+  return `${Math.round(diff / 60)}h ago`;
+}
+
+function formatMoney(n: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(n);
+}
+
+// ---------- Sections ----------
+function StatusSection({ data }: { data?: EngineStatus }) {
+  if (!data) return <div className="text-sm text-slate-500">Loading…</div>;
+  return (
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <Stat
+        label="Policy version"
+        value={data.policyVersion}
+        foot={`Deployed ${formatTimeAgo(data.deployedAt)}`}
+      />
+      <Stat
+        label="Cases today"
+        value={String(data.casesToday)}
+        foot={`${data.autoDecisionedPct}% auto-decisioned`}
+      />
+      <Stat
+        label="Median time-to-decision"
+        value={`~${data.medianTimeToDecisionMin} min`}
+        foot={`SLA breach ${(data.slaBreachRate * 100).toFixed(2)}%`}
+      />
+      <Stat
+        label="Queue depth"
+        value={String(data.queueDepth)}
+        foot="Escalations awaiting Gate 4"
+      />
+      <div className="col-span-2 md:col-span-4 rounded-lg border border-slate-800 bg-slate-950/60 p-4">
+        <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-3">
+          Agent mesh health
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {data.agents.map((a) => (
+            <Pill key={a.name} tone={StageTone(a.status)}>
+              {a.name} · {a.status}
+            </Pill>
+          ))}
         </div>
       </div>
     </div>
   );
 }
 
-export default EngineRoom;
+function FabricSection({ data }: { data?: Fabric }) {
+  if (!data) return null;
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-800 bg-slate-950/60 p-4">
+        {data.pipeline.map((p, i) => (
+          <div key={p.stage} className="flex items-center gap-2">
+            <div className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5">
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">
+                Stage {i + 1}
+              </div>
+              <div className="text-sm text-slate-100">{p.stage}</div>
+              <div className="text-[11px] text-slate-500 max-w-[220px]">
+                {p.detail}
+              </div>
+            </div>
+            {i < data.pipeline.length - 1 && (
+              <ChevronRight className="h-4 w-4 text-slate-600" />
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="overflow-hidden rounded-lg border border-slate-800">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-900/60 text-left text-[10px] uppercase tracking-wider text-slate-500">
+            <tr>
+              <th className="px-4 py-2">Source</th>
+              <th className="px-4 py-2">Coverage</th>
+              <th className="px-4 py-2">Freshness</th>
+              <th className="px-4 py-2">Stage</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800">
+            {data.sources.map((s) => (
+              <tr key={s.name} className="text-slate-200">
+                <td className="px-4 py-2">{s.name}</td>
+                <td className="px-4 py-2 text-slate-400">{s.coverage}</td>
+                <td className="px-4 py-2 tabular-nums text-slate-400">
+                  {s.freshnessMin < 60
+                    ? `${s.freshnessMin}m`
+                    : `${Math.round(s.freshnessMin / 60)}h`}
+                </td>
+                <td className="px-4 py-2">
+                  <Pill tone={StageTone(s.status)}>{s.status}</Pill>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="text-[11px] text-slate-500">
+        {data.anomaliesLast24h} anomalies detected in the last 24h — routed to
+        Reconciliation + Compliance Agents.
+      </div>
+    </div>
+  );
+}
+
+function QueueSection({ data, onOpenMemo }: { data?: QueueData; onOpenMemo: (id: string) => void }) {
+  if (!data) return null;
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+        {data.gates.map((g) => (
+          <div
+            key={g.gate}
+            className="rounded-lg border border-slate-800 bg-slate-950/60 p-4"
+          >
+            <div className="flex items-center justify-between">
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">
+                Gate {g.gate}
+              </div>
+              <Pill tone={g.passRate > 0.9 ? "emerald" : "amber"}>
+                {(g.passRate * 100).toFixed(0)}% pass
+              </Pill>
+            </div>
+            <div className="mt-2 text-sm font-medium text-white">{g.name}</div>
+            <div className="mt-1 text-[11px] text-slate-500">
+              Median{" "}
+              {g.medianMs > 60000
+                ? `${Math.round(g.medianMs / 60000)}m`
+                : `${g.medianMs}ms`}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="overflow-hidden rounded-lg border border-slate-800">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-900/60 text-left text-[10px] uppercase tracking-wider text-slate-500">
+            <tr>
+              <th className="px-4 py-2">Case</th>
+              <th className="px-4 py-2">Tenant</th>
+              <th className="px-4 py-2">Product</th>
+              <th className="px-4 py-2">Gate</th>
+              <th className="px-4 py-2">Wait</th>
+              <th className="px-4 py-2">Status</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800">
+            {data.cases.map((c) => (
+              <tr key={c.id} className="text-slate-200">
+                <td className="px-4 py-2 font-mono text-xs">{c.id}</td>
+                <td className="px-4 py-2">{c.tenant}</td>
+                <td className="px-4 py-2 text-slate-400">{c.product}</td>
+                <td className="px-4 py-2 tabular-nums">{c.gate}</td>
+                <td className="px-4 py-2 tabular-nums text-slate-400">
+                  {c.waitMin}m
+                </td>
+                <td className="px-4 py-2">
+                  <Pill
+                    tone={c.status === "human-review" ? "amber" : "emerald"}
+                  >
+                    {c.status}
+                  </Pill>
+                </td>
+                <td className="px-4 py-2 text-right">
+                  <button
+                    onClick={() => onOpenMemo(c.id)}
+                    className="inline-flex items-center gap-1 text-xs text-sky-400 hover:text-sky-300"
+                  >
+                    Memo <ChevronRight className="h-3 w-3" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function MemoSection({ data }: { data?: Memo }) {
+  if (!data) return null;
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-slate-500">
+              Case {data.caseId} · {data.product}
+            </div>
+            <div className="mt-1 text-lg font-semibold text-white">
+              {data.tenant}
+            </div>
+            <div className="text-[11px] text-slate-500">
+              {data.corridor} · Policy {data.policyVersion}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Pill tone="sky">Score {data.score}</Pill>
+            <Pill tone="amber">{data.decision}</Pill>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+          <Stat label="Requested" value={formatMoney(data.requestedLimit)} />
+          <Stat label="Recommended" value={formatMoney(data.recommendedLimit)} />
+          <Stat
+            label="Advance rate"
+            value="85%"
+            foot="Factoring default"
+          />
+          <Stat label="Corridor cap" value="$400K" foot="US→MX tenant cap" />
+        </div>
+      </div>
+      <div className="overflow-hidden rounded-lg border border-slate-800">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-900/60 text-left text-[10px] uppercase tracking-wider text-slate-500">
+            <tr>
+              <th className="px-4 py-2">Factor</th>
+              <th className="px-4 py-2">Signal</th>
+              <th className="px-4 py-2">Value</th>
+              <th className="px-4 py-2 text-center">Dir</th>
+              <th className="px-4 py-2 text-right">Weight</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800">
+            {data.factors.map((f) => (
+              <tr key={f.factor} className="text-slate-200">
+                <td className="px-4 py-2 font-medium">{f.factor}</td>
+                <td className="px-4 py-2 text-slate-400">{f.signal}</td>
+                <td className="px-4 py-2 tabular-nums text-slate-300">
+                  {f.value}
+                </td>
+                <td className="px-4 py-2 text-center">
+                  <span
+                    className={
+                      f.direction === "+"
+                        ? "text-emerald-400"
+                        : f.direction === "-"
+                          ? "text-rose-400"
+                          : "text-slate-500"
+                    }
+                  >
+                    {f.direction}
+                  </span>
+                </td>
+                <td className="px-4 py-2 text-right text-slate-500 tabular-nums">
+                  {f.weight}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {data.guardrails.map((g) => (
+          <Pill key={g} tone="slate">
+            {g}
+          </Pill>
+        ))}
+      </div>
+      <div className="flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-[11px] text-amber-300">
+        <Lock className="h-3.5 w-3.5" />
+        {data.redactedNote}
+      </div>
+    </div>
+  );
+}
+
+function PolicySection({
+  data,
+  onReplay,
+}: {
+  data?: Policy;
+  onReplay: () => void;
+}) {
+  if (!data) return null;
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-800 bg-slate-950/60 p-4">
+        <div className="flex items-center gap-3">
+          <Pill tone="slate">{data.previous}</Pill>
+          <ChevronRight className="h-4 w-4 text-slate-600" />
+          <Pill tone="emerald">{data.current}</Pill>
+          <span className="text-[11px] text-slate-500">
+            Deployed {formatTimeAgo(data.deployedAt)}
+          </span>
+        </div>
+        <button
+          onClick={onReplay}
+          className="inline-flex items-center gap-1.5 rounded-md border border-sky-500/30 bg-sky-500/10 px-3 py-1.5 text-xs font-medium text-sky-300 hover:bg-sky-500/20"
+        >
+          <GitBranch className="h-3.5 w-3.5" />
+          Replay on sample (N={data.replaySampleSize})
+        </button>
+      </div>
+      <div className="overflow-hidden rounded-lg border border-slate-800">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-900/60 text-left text-[10px] uppercase tracking-wider text-slate-500">
+            <tr>
+              <th className="px-4 py-2">Policy path</th>
+              <th className="px-4 py-2">From</th>
+              <th className="px-4 py-2">To</th>
+              <th className="px-4 py-2">Reason</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800">
+            {data.diff.map((d) => (
+              <tr key={d.path} className="text-slate-200">
+                <td className="px-4 py-2 font-mono text-xs text-slate-300">
+                  {d.path}
+                </td>
+                <td className="px-4 py-2 text-rose-300">{d.from}</td>
+                <td className="px-4 py-2 text-emerald-300">{d.to}</td>
+                <td className="px-4 py-2 text-slate-400">{d.reason}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function MonitoringSection({ data }: { data?: Monitoring }) {
+  if (!data) return null;
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="rounded-lg border border-slate-800 bg-slate-950/60">
+        <div className="border-b border-slate-800 px-4 py-2 text-[10px] uppercase tracking-wider text-slate-500">
+          Covenant monitoring
+        </div>
+        <div className="divide-y divide-slate-800">
+          {data.covenants.map((c, i) => (
+            <div key={i} className="flex items-center justify-between px-4 py-3">
+              <div>
+                <div className="text-sm text-slate-100">{c.tenant}</div>
+                <div className="text-[11px] text-slate-500">{c.metric}</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm tabular-nums text-slate-300">
+                  {c.value}
+                </span>
+                <span className="text-[11px] text-slate-500">
+                  / {c.threshold}
+                </span>
+                <Pill tone={c.status === "ok" ? "emerald" : "amber"}>
+                  {c.status}
+                </Pill>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="rounded-lg border border-slate-800 bg-slate-950/60">
+        <div className="border-b border-slate-800 px-4 py-2 text-[10px] uppercase tracking-wider text-slate-500">
+          Early warning signals (scaffold)
+        </div>
+        <div className="divide-y divide-slate-800">
+          {data.earlyWarnings.map((w, i) => (
+            <div key={i} className="flex items-start justify-between gap-3 px-4 py-3">
+              <div>
+                <div className="text-sm text-slate-100">{w.tenant}</div>
+                <div className="text-[11px] text-slate-400">{w.signal}</div>
+              </div>
+              <Pill tone="amber">{w.severity}</Pill>
+            </div>
+          ))}
+        </div>
+        <div className="border-t border-slate-800 px-4 py-2 text-[10px] text-slate-600">
+          EWS is a scaffolded capability — rules engine in production,
+          ML-ranked severities are not yet live.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AgentsSection({ data }: { data?: AgentRow[] }) {
+  if (!data) return null;
+  return (
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+      {data.map((a) => (
+        <div
+          key={a.name}
+          className="rounded-lg border border-slate-800 bg-slate-950/60 p-4"
+        >
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-semibold text-white">{a.name}</div>
+            <Pill tone={StageTone(a.status)}>{a.status}</Pill>
+          </div>
+          <p className="mt-2 text-[12px] leading-relaxed text-slate-400">
+            {a.role}
+          </p>
+          <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500">
+            <span className="tabular-nums">{a.actionsToday} actions today</span>
+            <span className="tabular-nums">
+              {(a.escalationRate * 100).toFixed(1)}% escalations
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EventsSection({ data }: { data?: EngineEvent[] }) {
+  if (!data) return null;
+  const domainTone: Record<string, "emerald" | "amber" | "sky" | "violet" | "slate" | "rose"> = {
+    credit: "emerald",
+    compliance: "sky",
+    treasury: "amber",
+    recon: "violet",
+    policy: "rose",
+  };
+  return (
+    <div className="overflow-hidden rounded-lg border border-slate-800">
+      <table className="w-full text-sm">
+        <thead className="bg-slate-900/60 text-left text-[10px] uppercase tracking-wider text-slate-500">
+          <tr>
+            <th className="px-4 py-2">When</th>
+            <th className="px-4 py-2">Domain</th>
+            <th className="px-4 py-2">Event</th>
+            <th className="px-4 py-2">Subject</th>
+            <th className="px-4 py-2">Detail</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-800">
+          {data.map((e, i) => (
+            <tr key={i} className="text-slate-200">
+              <td className="px-4 py-2 text-[11px] text-slate-400">
+                {formatTimeAgo(e.ts)}
+              </td>
+              <td className="px-4 py-2">
+                <Pill tone={domainTone[e.domain] || "slate"}>{e.domain}</Pill>
+              </td>
+              <td className="px-4 py-2 font-mono text-xs text-slate-300">
+                {e.event}
+              </td>
+              <td className="px-4 py-2 text-slate-300">{e.subject}</td>
+              <td className="px-4 py-2 text-[12px] text-slate-400">
+                {e.detail}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function LenderSection({ data }: { data?: Lender }) {
+  if (!data) return null;
+  return (
+    <div className="relative overflow-hidden rounded-lg border border-slate-800 bg-slate-950/60 p-5">
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <div className="rotate-[-12deg] text-4xl font-bold text-slate-800/40 tracking-widest">
+          PREVIEW
+        </div>
+      </div>
+      <div className="relative">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-slate-500">
+              Lender view · Borrowing base preview
+            </div>
+            <div className="mt-1 text-lg font-semibold text-white">
+              Reporting period: {data.reportingPeriod}
+            </div>
+          </div>
+          <Pill tone="sky">Permissioned</Pill>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+          <Stat label="Borrowing base" value={formatMoney(data.borrowingBase)} />
+          <Stat label="Eligible pool" value={formatMoney(data.eligiblePool)} />
+          <Stat label="Net yield" value={`${(data.yieldNetBps / 100).toFixed(2)}%`} />
+          <Stat label="Loss proxy" value={`${(data.lossProxyBps / 100).toFixed(2)}%`} />
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+          <Stat label="Reserve · dilution" value={formatMoney(data.reserves.dilution)} />
+          <Stat label="Reserve · concentration" value={formatMoney(data.reserves.concentration)} />
+          <Stat label="Reserve · aging" value={formatMoney(data.reserves.aging)} />
+        </div>
+        <div className="mt-4 text-[10px] uppercase tracking-[0.2em] text-slate-500">
+          {data.watermark}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProductScopeSection() {
+  const items = [
+    { name: "Invoice Factoring", stage: "live", note: "Live with Lead Bank rails, US→9 corridors" },
+    { name: "Revenue-Based Financing", stage: "live", note: "Live for SaaS / services ICP, 12–24mo terms" },
+    { name: "Working Capital Lines", stage: "pilot", note: "Pilot with two tenants; collateralised by receivables" },
+    { name: "Supply Chain Finance", stage: "pilot", note: "Pilot: buyer-led programs on US→MX" },
+    { name: "Trade Finance / LCs", stage: "scaffold", note: "Scaffolded — document extraction live, issuance roadmap" },
+    { name: "Treasury Sweeps", stage: "pilot", note: "Circle Yield pilot; reversible, reserve-aware" },
+    { name: "FX Hedging", stage: "scaffold", note: "Mid-market pricing live; programmatic hedges scaffolded" },
+    { name: "Covenants & EWS", stage: "scaffold", note: "Rules engine live; ML-ranked signals in scaffold" },
+    { name: "Collections", stage: "scaffold", note: "Notification + dunning cadence scaffolded" },
+    { name: "Merchant Acquiring / MTL", stage: "roadmap", note: "Roadmap — dependent on regulatory expansion" },
+  ];
+  return (
+    <div className="overflow-hidden rounded-lg border border-slate-800">
+      <table className="w-full text-sm">
+        <thead className="bg-slate-900/60 text-left text-[10px] uppercase tracking-wider text-slate-500">
+          <tr>
+            <th className="px-4 py-2">Capability</th>
+            <th className="px-4 py-2">Stage</th>
+            <th className="px-4 py-2">Scope</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-800">
+          {items.map((i) => (
+            <tr key={i.name} className="text-slate-200">
+              <td className="px-4 py-2 font-medium">{i.name}</td>
+              <td className="px-4 py-2">
+                <Pill tone={StageTone(i.stage)}>{i.stage}</Pill>
+              </td>
+              <td className="px-4 py-2 text-slate-400">{i.note}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="border-t border-slate-800 bg-slate-900/30 px-4 py-2 text-[11px] text-slate-500">
+        We do not pretend that everything in the Atlas catalogue is equally
+        deep. Factoring and RBF are productized. Treasury and SCF are pilots.
+        Trade finance, covenants, and EWS are scaffolded. MTL is on the
+        roadmap.
+      </div>
+    </div>
+  );
+}
+
+// ---------- Replay Modal ----------
+function ReplayModal({
+  policy,
+  onClose,
+}: {
+  policy?: Policy;
+  onClose: () => void;
+}) {
+  if (!policy) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+      <div className="relative w-full max-w-lg rounded-lg border border-slate-800 bg-slate-950 p-6">
+        <button
+          onClick={onClose}
+          className="absolute right-3 top-3 text-slate-500 hover:text-slate-200"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-slate-500">
+          <GitBranch className="h-3.5 w-3.5" />
+          Policy replay
+        </div>
+        <h3 className="mt-1 text-lg font-semibold text-white">
+          {policy.previous} → {policy.current}
+        </h3>
+        <p className="mt-1 text-[12px] text-slate-400">
+          We replay the new policy on a held-out sample of recent cases to
+          quantify expected decision drift before rollout.
+        </p>
+        <div className="mt-4 grid grid-cols-3 gap-3">
+          <Stat
+            label="Sample"
+            value={`N=${policy.replaySampleSize}`}
+            foot="last 30 days"
+          />
+          <Stat
+            label="Decisions changed"
+            value={String(policy.replayImpact.decisionsChanged)}
+          />
+          <Stat
+            label="Approval Δ"
+            value={policy.replayImpact.approvalDelta}
+            foot={`Loss proxy ${policy.replayImpact.lossProxyDelta}`}
+          />
+        </div>
+        <div className="mt-4 flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-[11px] text-emerald-300">
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          Replay-validated rollouts only. Lender-confidential weights are never
+          exposed in the replay surface.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------- Main ----------
+export default function EngineRoom() {
+  const [memoCaseId, setMemoCaseId] = useState<string>("CS-2041");
+  const [replayOpen, setReplayOpen] = useState(false);
+
+  const { data: status } = useQuery<EngineStatus>({ queryKey: ["/api/engine/status"] });
+  const { data: fabric } = useQuery<Fabric>({ queryKey: ["/api/engine/fabric"] });
+  const { data: queue } = useQuery<QueueData>({ queryKey: ["/api/engine/queue"] });
+  const { data: memo } = useQuery<Memo>({ queryKey: [`/api/engine/memo/${memoCaseId}`] });
+  const { data: policy } = useQuery<Policy>({ queryKey: ["/api/engine/policy"] });
+  const { data: monitoring } = useQuery<Monitoring>({ queryKey: ["/api/engine/monitoring"] });
+  const { data: agents } = useQuery<AgentRow[]>({ queryKey: ["/api/engine/agents"] });
+  const { data: events } = useQuery<EngineEvent[]>({ queryKey: ["/api/engine/events"] });
+  const { data: lender } = useQuery<Lender>({ queryKey: ["/api/engine/lender"] });
+
+  const nav: Array<{ id: string; label: string }> = [
+    { id: "status", label: "Status" },
+    { id: "fabric", label: "Data Fabric" },
+    { id: "queue", label: "Underwriting Queue" },
+    { id: "memo", label: "Credit Memo" },
+    { id: "policy", label: "Policy (ACB)" },
+    { id: "monitoring", label: "Monitoring" },
+    { id: "agents", label: "Agent Layer" },
+    { id: "events", label: "Event Stream" },
+    { id: "lender", label: "Lender View" },
+    { id: "products", label: "Scope Map" },
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#07090c] text-slate-100">
+      {/* Top bar */}
+      <div className="sticky top-0 z-30 border-b border-slate-800 bg-[#07090c]/90 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-6 w-6 items-center justify-center rounded-sm bg-white text-[11px] font-bold text-black">
+              A
+            </div>
+            <div className="text-sm font-medium tracking-tight text-slate-100">
+              Atlas · Engine Room
+            </div>
+            <Pill tone="emerald">AI Credit OS</Pill>
+            <Pill tone="slate">ACB v4.12</Pill>
+          </div>
+          <div className="flex items-center gap-3 text-[11px] text-slate-400">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1 hover:text-slate-100"
+            >
+              Customer workspace <ExternalLink className="h-3 w-3" />
+            </Link>
+          </div>
+        </div>
+        <nav className="mx-auto flex max-w-6xl items-center gap-4 overflow-x-auto px-6 pb-2 text-[11px] text-slate-500">
+          {nav.map((n) => (
+            <a
+              key={n.id}
+              href={`#${n.id}`}
+              className="whitespace-nowrap hover:text-slate-200"
+            >
+              {n.label}
+            </a>
+          ))}
+        </nav>
+      </div>
+
+      {/* Header */}
+      <header className="mx-auto max-w-6xl px-6 pt-10 pb-6">
+        <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">
+          Atlas Technologies · Internal Ops Surface · V3 Preview
+        </div>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white max-w-3xl">
+          The AI Credit OS behind the Atlas Financial OS.
+        </h1>
+        <p className="mt-3 max-w-2xl text-sm text-slate-400">
+          Atlas owns the customer interface, the underwriting logic, and the
+          risk controls. Lead Bank, Bridge, Circle, and Rain are invisible
+          infrastructure. This surface is how operators and risk see what the
+          system is actually doing.
+        </p>
+        <div className="mt-5 flex flex-wrap items-center gap-2">
+          <Pill tone="emerald">Factoring · Live</Pill>
+          <Pill tone="emerald">RBF · Live</Pill>
+          <Pill tone="amber">Treasury · Pilot</Pill>
+          <Pill tone="amber">SCF · Pilot</Pill>
+          <Pill tone="violet">Trade finance · Scaffold</Pill>
+          <Pill tone="slate">MTL · Roadmap</Pill>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-6xl space-y-10 px-6 pb-20">
+        <Section id="status" icon={Gauge} kicker="System" title="Engine status">
+          <StatusSection data={status} />
+        </Section>
+
+        <Section id="fabric" icon={Database} kicker="Data" title="Data fabric">
+          <FabricSection data={fabric} />
+        </Section>
+
+        <Section
+          id="queue"
+          icon={Layers}
+          kicker="Underwriting"
+          title="4-Gate underwriting queue"
+        >
+          <QueueSection data={queue} onOpenMemo={setMemoCaseId} />
+        </Section>
+
+        <Section
+          id="memo"
+          icon={FileText}
+          kicker="Explainability"
+          title="7-Factor credit memo"
+        >
+          <MemoSection data={memo} />
+        </Section>
+
+        <Section
+          id="policy"
+          icon={GitBranch}
+          kicker="Policy"
+          title="ACB versioning & replay"
+        >
+          <PolicySection data={policy} onReplay={() => setReplayOpen(true)} />
+        </Section>
+
+        <Section
+          id="monitoring"
+          icon={CircleAlert}
+          kicker="Risk"
+          title="Covenants & early-warning signals"
+        >
+          <MonitoringSection data={monitoring} />
+        </Section>
+
+        <Section
+          id="agents"
+          icon={Cpu}
+          kicker="Autonomy"
+          title="Autonomous agent layer"
+        >
+          <AgentsSection data={agents} />
+        </Section>
+
+        <Section
+          id="events"
+          icon={Radio}
+          kicker="Telemetry"
+          title="Domain event stream"
+        >
+          <EventsSection data={events} />
+        </Section>
+
+        <Section
+          id="lender"
+          icon={ShieldCheck}
+          kicker="Capital"
+          title="Lender view (preview)"
+        >
+          <LenderSection data={lender} />
+        </Section>
+
+        <Section
+          id="products"
+          icon={Activity}
+          kicker="Scope"
+          title="What's live, pilot, scaffold, roadmap"
+        >
+          <ProductScopeSection />
+        </Section>
+
+        <footer className="pt-10 text-[10px] uppercase tracking-[0.2em] text-slate-600 text-center">
+          Strictly private & confidential · Atlas Technologies · V3 preview ·
+          April 2026
+        </footer>
+      </main>
+
+      {replayOpen && (
+        <ReplayModal policy={policy} onClose={() => setReplayOpen(false)} />
+      )}
+    </div>
+  );
+}

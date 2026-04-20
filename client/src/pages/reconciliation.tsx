@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { PerplexityAttribution } from "@/components/PerplexityAttribution";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { GitCompareArrows, CheckCircle2, AlertTriangle, XCircle, Clock, RefreshCw, Database } from "lucide-react";
@@ -470,8 +469,6 @@ export default function ReconciliationPage() {
           />
         )}
       </Dialog>
-
-      <PerplexityAttribution />
-    </div>
+</div>
   );
 }

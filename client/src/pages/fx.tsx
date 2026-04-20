@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PerplexityAttribution } from "@/components/PerplexityAttribution";
 import { ArrowLeftRight, DollarSign, TrendingUp, Activity, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import type { FxTransaction } from "@shared/schema";
@@ -60,10 +59,18 @@ export default function FxPage() {
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold" style={{ fontFamily: "'Cabinet Grotesk', sans-serif" }} data-testid="text-page-title">
-            FX Dashboard
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+            <span>FX</span>
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 px-2 py-0.5 text-[10px] font-medium">
+              <span className="h-1 w-1 rounded-full bg-current opacity-80" />Live
+            </span>
+          </div>
+          <h1 className="text-2xl font-bold mt-1" style={{ fontFamily: "'Cabinet Grotesk', sans-serif" }} data-testid="text-page-title">
+            FX & Settlement
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Foreign exchange spread revenue and corridor analysis</p>
+          <p className="text-sm text-muted-foreground mt-0.5 max-w-2xl">
+            Routed through Circle USDC / StableFX and Arc rails with mid-market pricing. Programmatic hedging is scaffolded.
+          </p>
         </div>
       </div>
 
@@ -284,8 +291,6 @@ export default function FxPage() {
           )}
         </CardContent>
       </Card>
-
-      <PerplexityAttribution />
-    </div>
+</div>
   );
 }

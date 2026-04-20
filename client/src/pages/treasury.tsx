@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { PerplexityAttribution } from "@/components/PerplexityAttribution";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Landmark, DollarSign, TrendingUp, Percent, Wallet, RefreshCw, ArrowDownToLine } from "lucide-react";
@@ -191,10 +190,18 @@ export default function TreasuryPage() {
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold" style={{ fontFamily: "'Cabinet Grotesk', sans-serif" }} data-testid="text-page-title">
-            Treasury Yield Agent
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+            <span>Treasury</span>
+            <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400 px-2 py-0.5 text-[10px] font-medium">
+              <span className="h-1 w-1 rounded-full bg-current opacity-80" />Pilot
+            </span>
+          </div>
+          <h1 className="text-2xl font-bold mt-1" style={{ fontFamily: "'Cabinet Grotesk', sans-serif" }} data-testid="text-page-title">
+            Treasury & Sweeps
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">AI-driven stablecoin yield optimization</p>
+          <p className="text-sm text-muted-foreground mt-0.5 max-w-2xl">
+            Reserve-aware sweeps and programmable yield, routed through Circle USDC pilots. Sweeps are reversible within 24h.
+          </p>
         </div>
         <div className="flex gap-2">
           <Button
@@ -425,8 +432,6 @@ export default function TreasuryPage() {
       <Dialog open={!!selectedPosition} onOpenChange={(open) => !open && setSelectedPosition(null)}>
         {selectedPosition && <PositionDetailDialog position={selectedPosition} />}
       </Dialog>
-
-      <PerplexityAttribution />
-    </div>
+</div>
   );
 }

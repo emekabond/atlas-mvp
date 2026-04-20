@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { PerplexityAttribution } from "@/components/PerplexityAttribution";
 import { useToast } from "@/hooks/use-toast";
 import { Building2, Plug, Globe, Key, Bell, Copy, CheckCircle, XCircle } from "lucide-react";
 
@@ -243,8 +242,6 @@ export default function SettingsPage() {
           ))}
         </CardContent>
       </Card>
-
-      <PerplexityAttribution />
-    </div>
+</div>
   );
 }

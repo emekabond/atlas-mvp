@@ -7,10 +7,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { PerplexityAttribution } from "@/components/PerplexityAttribution";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Brain, TrendingUp, AlertTriangle, CreditCard, RefreshCw, DollarSign, Percent, Clock, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
+import { Brain, TrendingUp, AlertTriangle, CreditCard, RefreshCw, DollarSign, Percent, Clock, ArrowDownToLine, ArrowUpFromLine, ExternalLink } from "lucide-react";
+import { StatusPill } from "@/components/StatusPill";
 import type { Client, CreditAssessment, RbfFacility } from "@shared/schema";
 
 function formatCurrency(value: number) {
@@ -601,23 +601,67 @@ function RbfTab() {
   );
 }
 
-// ---- Main Credit Agent Page ----
+// ---- Facility Header (Meridian) ----
+function FacilityHeader() {
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Facility</div>
+          <div className="mt-1 text-sm font-medium">Invoice Factoring</div>
+          <StatusPill stage="live" className="mt-1" />
+        </div>
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Limit</div>
+          <div className="mt-1 text-sm font-semibold tabular-nums">$250,000</div>
+        </div>
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Utilized</div>
+          <div className="mt-1 text-sm font-semibold tabular-nums">$162,500</div>
+          <div className="text-[11px] text-muted-foreground">65% of limit</div>
+        </div>
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Advance rate</div>
+          <div className="mt-1 text-sm font-semibold tabular-nums">85%</div>
+        </div>
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Policy</div>
+          <div className="mt-1 text-sm font-semibold">ACB v4.12</div>
+          <a
+            href="/#/engine-room/#memo"
+            className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary/80"
+          >
+            Why this limit? <ExternalLink className="h-3 w-3" />
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---- Main Credit Page ----
 export default function CreditAgent() {
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h1 className="text-xl font-bold" style={{ fontFamily: "'Cabinet Grotesk', sans-serif" }} data-testid="text-page-title">
-            AI Credit Agent
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Credit</div>
+          <h1 className="text-2xl font-bold mt-1" style={{ fontFamily: "'Cabinet Grotesk', sans-serif" }} data-testid="text-page-title">
+            Facilities & Credit
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">AI-driven credit scoring and working capital recommendations</p>
+          <p className="text-sm text-muted-foreground mt-0.5 max-w-2xl">
+            Your working-capital facilities, drawdowns, and repayments — underwritten continuously by the Atlas Credit OS.
+          </p>
         </div>
       </div>
 
+      <FacilityHeader />
+
       <Tabs defaultValue="factoring" data-testid="tabs-credit-agent">
         <TabsList data-testid="tabslist-credit-agent">
-          <TabsTrigger value="factoring" data-testid="tab-invoice-factoring">Invoice Factoring</TabsTrigger>
-          <TabsTrigger value="rbf" data-testid="tab-rbf">Revenue-Based Financing</TabsTrigger>
+          <TabsTrigger value="factoring" data-testid="tab-invoice-factoring">Facilities</TabsTrigger>
+          <TabsTrigger value="rbf" data-testid="tab-rbf">RBF</TabsTrigger>
+          <TabsTrigger value="drawdowns" data-testid="tab-drawdowns">Drawdowns & Repayments</TabsTrigger>
         </TabsList>
         <TabsContent value="factoring" className="mt-4">
           <InvoiceFactoringTab />
@@ -625,9 +669,15 @@ export default function CreditAgent() {
         <TabsContent value="rbf" className="mt-4">
           <RbfTab />
         </TabsContent>
+        <TabsContent value="drawdowns" className="mt-4">
+          <div className="rounded-lg border border-border bg-card p-8 text-center">
+            <div className="text-sm font-medium">Drawdowns & repayments</div>
+            <p className="mt-1 text-xs text-muted-foreground max-w-md mx-auto">
+              Unified drawdown timeline across factoring and RBF. RBF draws and repayments are live in the RBF tab; factoring advances flow through the Invoices page.
+            </p>
+          </div>
+        </TabsContent>
       </Tabs>
-
-      <PerplexityAttribution />
     </div>
   );
 }

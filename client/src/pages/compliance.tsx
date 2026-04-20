@@ -8,7 +8,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PerplexityAttribution } from "@/components/PerplexityAttribution";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Shield, Users, Clock, FileCheck, AlertCircle, Plus, CheckCircle, X } from "lucide-react";
@@ -465,8 +464,6 @@ export default function Compliance() {
       <Dialog open={!!selectedEntity} onOpenChange={(open) => !open && setSelectedEntity(null)}>
         {selectedEntity && <EntityDetailDialog entity={selectedEntity} />}
       </Dialog>
-
-      <PerplexityAttribution />
-    </div>
+</div>
   );
 }

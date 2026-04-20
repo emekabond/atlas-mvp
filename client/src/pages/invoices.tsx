@@ -9,7 +9,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { PerplexityAttribution } from "@/components/PerplexityAttribution";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Plus, Filter } from "lucide-react";
@@ -69,7 +68,7 @@ function InvoiceDetailDialog({ invoice, clients }: { invoice: Invoice; clients: 
     },
   });
 
-  const advanceRate = 0.92;
+  const advanceRate = 0.85; // ACB v4.12 default
   const fee = invoice.amount * 0.035;
   const advanceAmount = invoice.amount * advanceRate - fee;
 
@@ -131,6 +130,17 @@ function InvoiceDetailDialog({ invoice, clients }: { invoice: Invoice; clients: 
                   <p className="font-bold tabular-nums text-primary">{formatCurrency(advanceAmount)}</p>
                 </div>
               </div>
+              <div className="rounded-md border border-primary/20 bg-background/40 p-2 text-[11px] leading-relaxed text-muted-foreground">
+                <div className="text-[10px] uppercase tracking-wider text-primary mb-1">Why this rate</div>
+                <ul className="space-y-0.5">
+                  <li>· Buyer concentration within policy</li>
+                  <li>· Corridor eligible under ACB v4.12</li>
+                  <li>· ERP matched — Recon Agent green</li>
+                </ul>
+                <a href="/#/engine-room/#memo" className="mt-1 inline-block text-primary hover:underline">
+                  Open full credit memo →
+                </a>
+              </div>
               <Button
                 size="sm"
                 className="w-full mt-2"
@@ -138,7 +148,7 @@ function InvoiceDetailDialog({ invoice, clients }: { invoice: Invoice; clients: 
                 disabled={factorMutation.isPending}
                 data-testid="button-factor-invoice"
               >
-                {factorMutation.isPending ? "Processing..." : "Factor This Invoice"}
+                {factorMutation.isPending ? "Processing..." : "Advance this invoice"}
               </Button>
             </CardContent>
           </Card>
@@ -379,8 +389,6 @@ export default function Invoices() {
       <Dialog open={!!selectedInvoice} onOpenChange={(open) => !open && setSelectedInvoice(null)}>
         {selectedInvoice && <InvoiceDetailDialog invoice={selectedInvoice} clients={clients} />}
       </Dialog>
-
-      <PerplexityAttribution />
-    </div>
+</div>
   );
 }

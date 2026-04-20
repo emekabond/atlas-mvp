@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Switch, Route, Router } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
 import { queryClient } from "./lib/queryClient";
@@ -6,6 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { ActionRail } from "@/components/ActionRail";
 import Dashboard from "@/pages/dashboard";
 import Invoices from "@/pages/invoices";
 import CreditAgent from "@/pages/credit-agent";
@@ -39,25 +41,52 @@ function AppRouter() {
   );
 }
 
+function AppShell() {
+  const [location] = useHashLocation();
+  const [railCollapsed, setRailCollapsed] = useState(false);
+  const isEngineRoom = location.startsWith("/engine-room");
+
+  if (isEngineRoom) {
+    // Engine Room is an internal/ops surface — full-bleed, no sidebar/rail.
+    return (
+      <main className="min-h-screen w-full overflow-y-auto">
+        <AppRouter />
+      </main>
+    );
+  }
+
+  return (
+    <SidebarProvider>
+      <div className="flex h-screen w-full">
+        <AppSidebar />
+        <div className="flex flex-col flex-1 min-w-0">
+          <header className="flex items-center gap-2 p-2 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
+            <SidebarTrigger data-testid="button-sidebar-toggle" />
+            <span className="text-xs text-muted-foreground">
+              Atlas · Financial OS · V3 Preview
+            </span>
+          </header>
+          <div className="flex flex-1 min-h-0">
+            <main className="flex-1 overflow-y-auto">
+              <AppRouter />
+            </main>
+            <ActionRail
+              collapsed={railCollapsed}
+              onToggle={() => setRailCollapsed((v) => !v)}
+            />
+          </div>
+        </div>
+      </div>
+    </SidebarProvider>
+  );
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Router hook={useHashLocation}>
-          <SidebarProvider>
-            <div className="flex h-screen w-full">
-              <AppSidebar />
-              <div className="flex flex-col flex-1 min-w-0">
-                <header className="flex items-center gap-2 p-2 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-                  <SidebarTrigger data-testid="button-sidebar-toggle" />
-                  <span className="text-xs text-muted-foreground">Atlas Financial OS</span>
-                </header>
-                <main className="flex-1 overflow-y-auto">
-                  <AppRouter />
-                </main>
-              </div>
-            </div>
-          </SidebarProvider>
+          <AppShell />
         </Router>
         <Toaster />
       </TooltipProvider>

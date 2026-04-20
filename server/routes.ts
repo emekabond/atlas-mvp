@@ -648,5 +648,340 @@ export async function registerRoutes(
     ]);
   });
 
+  // =====================================================================
+  // Atlas V3 — Tenant / Liquidity / Action Rail / Engine Room endpoints
+  // =====================================================================
+
+  app.get("/api/tenant", (_req, res) => {
+    res.json({
+      id: "meridian-software",
+      name: "Meridian Software",
+      domicile: "US",
+      corridor: "US\u2192AR",
+      primaryBuyerGeo: "AR",
+      industry: "B2B Software / Services",
+      facility: {
+        product: "Invoice Factoring",
+        status: "live",
+        limit: 250000,
+        utilized: 162500,
+        advanceRateBps: 8500,
+        currency: "USD",
+      },
+      policyVersion: "ACB v4.12",
+      environment: "V3 \u00b7 Demo",
+    });
+  });
+
+  app.get("/api/dashboard/liquidity", async (_req, res) => {
+    const invs = await storage.getInvoices();
+    const facilities = await storage.getRbfFacilities();
+    const eligible = invs
+      .filter(
+        (i) =>
+          (i.status === "pending" || i.status === "approved") &&
+          (!i.factoringStatus || i.factoringStatus === "none" || i.factoringStatus === "eligible")
+      )
+      .reduce((s, i) => s + (i.amount || 0), 0);
+    const factored = invs
+      .filter((i) => i.factoringStatus === "funded")
+      .reduce((s, i) => s + (i.amount || 0) * 0.85, 0);
+    const rbfDrawn = facilities
+      .filter((f) => f.status === "active")
+      .reduce((s, f) => s + (f.drawnAmount - f.repaidAmount), 0);
+    const rbfUndrawn = facilities
+      .filter((f) => f.status === "active")
+      .reduce((s, f) => s + Math.max(0, f.facilityAmount - f.drawnAmount), 0);
+    res.json({
+      availableLiquidity: Math.round(87500 + rbfUndrawn * 0.6),
+      eligibleReceivables: Math.round(eligible),
+      activeAdvances: Math.round(factored + rbfDrawn),
+      nextSettlementHours: 4.2,
+      undrawnFacility: Math.round(rbfUndrawn + 87500),
+      advanceRateBps: 8500,
+    });
+  });
+
+  app.get("/api/action-rail", async (_req, res) => {
+    res.json([
+      {
+        id: "advance-mx-001",
+        agent: "Credit Agent",
+        severity: "info",
+        title: "Advance eligible: Volta Digital invoice INV-2041",
+        body: "US\u2192MX corridor, 30-day net, clean ERP match. Advance at 85% = $38,250 today.",
+        amount: 38250,
+        rationale: [
+          "Buyer concentration within policy (18%)",
+          "Recon status: matched on Codat",
+          "Corridor eligibility: 84% (US\u2192MX)",
+          "ACB v4.12 Gate 3 pass",
+        ],
+        ctaLabel: "Open advance",
+        ctaHref: "/invoices",
+      },
+      {
+        id: "covenant-burn-002",
+        agent: "Credit Agent",
+        severity: "warning",
+        title: "Covenant watch: burn rate approaching 1.2x threshold",
+        body: "Meridian 60d burn trending 1.14x. Review drawdown pacing before next RBF installment.",
+        rationale: [
+          "Rolling 60d opex up 9.2%",
+          "Receivables aging 35d (policy: <40d)",
+          "No breach \u2014 watch only",
+        ],
+        ctaLabel: "Review covenants",
+        ctaHref: "/credit",
+      },
+      {
+        id: "sweep-idle-003",
+        agent: "Treasury Agent",
+        severity: "info",
+        title: "Idle USDC suggestion: sweep $45K to Circle Yield",
+        body: "FBO balance has held $45K idle for 3 days. Pilot sweep available at 4.6% APY.",
+        amount: 45000,
+        rationale: [
+          "Reserve minimums satisfied",
+          "Pilot window: Circle Yield (4.6% APY)",
+          "Reversible within 24h",
+        ],
+        ctaLabel: "Preview sweep",
+        ctaHref: "/treasury",
+      },
+      {
+        id: "kyb-refresh-004",
+        agent: "Compliance Agent",
+        severity: "info",
+        title: "KYB refresh due: Bucharest Dynamics S.R.L.",
+        body: "Annual refresh window opens in 12 days. Pre-fill available from existing filings.",
+        rationale: [
+          "Last refresh: 353 days ago",
+          "No new sanctions hits",
+          "UBO unchanged",
+        ],
+        ctaLabel: "Start refresh",
+        ctaHref: "/compliance",
+      },
+      {
+        id: "recon-gap-005",
+        agent: "Recon Agent",
+        severity: "warning",
+        title: "2 ERP mismatches on NovaBridge (QuickBooks)",
+        body: "$412.50 and $188.00 variance detected \u2014 likely FX timing. Auto-reconcile candidate.",
+        rationale: [
+          "Variance <1% of invoice value",
+          "Timing pattern: end-of-day FX mark",
+          "Auto-resolve policy: eligible",
+        ],
+        ctaLabel: "Reconcile",
+        ctaHref: "/reconciliation",
+      },
+      {
+        id: "orchestrator-006",
+        agent: "Orchestrator",
+        severity: "info",
+        title: "Queue: 3 underwriting cases awaiting Gate 4 human review",
+        body: "Orchestrator has packaged memos for Volta, Guadalajara Studios, Centurion.",
+        rationale: [
+          "Gates 1\u20133 auto-passed",
+          "Avg time-to-decision: ~4 min",
+          "SLA: <24h from submission",
+        ],
+        ctaLabel: "Open engine room",
+        ctaHref: "/engine-room/#queue",
+      },
+    ]);
+  });
+
+  // ---- Engine Room: AI Credit OS internal view ----
+  app.get("/api/engine/status", (_req, res) => {
+    res.json({
+      policyVersion: "ACB v4.12",
+      deployedAt: "2026-04-14T11:24:00Z",
+      casesToday: 47,
+      autoDecisionedPct: 82,
+      medianTimeToDecisionMin: 4,
+      agents: [
+        { name: "Orchestrator", status: "healthy" },
+        { name: "Compliance Agent", status: "healthy" },
+        { name: "Underwriting Agent", status: "healthy" },
+        { name: "Treasury Agent", status: "healthy" },
+        { name: "Reconciliation Agent", status: "degraded" },
+      ],
+      queueDepth: 11,
+      slaBreachRate: 0.004,
+    });
+  });
+
+  app.get("/api/engine/fabric", (_req, res) => {
+    res.json({
+      sources: [
+        { name: "ERP (Codat)", coverage: "15/15 tenants", freshnessMin: 6, status: "live" },
+        { name: "Bank (Plaid / FBO)", coverage: "14/15", freshnessMin: 3, status: "live" },
+        { name: "Invoice (Atlas native)", coverage: "15/15", freshnessMin: 1, status: "live" },
+        { name: "Payment rails (Bridge / Circle)", coverage: "9 corridors", freshnessMin: 1, status: "live" },
+        { name: "KYB / Sanctions (3P)", coverage: "15/15", freshnessMin: 240, status: "live" },
+        { name: "Card network (Rain)", coverage: "Live issuing", freshnessMin: 2, status: "pilot" },
+      ],
+      pipeline: [
+        { stage: "Ingest", detail: "Normalize ERP / bank / invoice payloads" },
+        { stage: "Extract", detail: "IDP parses statements, contracts, shipping docs" },
+        { stage: "Score", detail: "ML scoring over unified tenant graph" },
+        { stage: "Explain", detail: "SHAP-style attribution per 7-factor memo" },
+        { stage: "Orchestrate", detail: "Gate routing + agent delegation" },
+      ],
+      anomaliesLast24h: 3,
+    });
+  });
+
+  app.get("/api/engine/queue", (_req, res) => {
+    res.json({
+      gates: [
+        { gate: 1, name: "Identity & KYB", passRate: 0.97, medianMs: 1200 },
+        { gate: 2, name: "Data Coverage & Quality", passRate: 0.94, medianMs: 800 },
+        { gate: 3, name: "Policy Fit (ACB v4.12)", passRate: 0.81, medianMs: 1600 },
+        { gate: 4, name: "Human Review (escalations only)", passRate: 0.92, medianMs: 14400000 },
+      ],
+      cases: [
+        { id: "CS-2041", tenant: "Volta Digital Agency", product: "Factoring", gate: 4, waitMin: 18, status: "human-review" },
+        { id: "CS-2042", tenant: "Guadalajara Studios", product: "Factoring", gate: 4, waitMin: 9, status: "human-review" },
+        { id: "CS-2043", tenant: "Centurion Dev Labs", product: "RBF", gate: 4, waitMin: 4, status: "human-review" },
+        { id: "CS-2044", tenant: "Mumbai Infra Labs", product: "Factoring", gate: 3, waitMin: 1, status: "auto" },
+        { id: "CS-2045", tenant: "NovaBridge SaaS", product: "RBF", gate: 3, waitMin: 1, status: "auto" },
+        { id: "CS-2046", tenant: "Bucharest Dynamics", product: "Factoring", gate: 2, waitMin: 0, status: "auto" },
+      ],
+    });
+  });
+
+  app.get("/api/engine/memo/:caseId", (req, res) => {
+    // 7-factor credit memo — weights REDACTED for public demo
+    res.json({
+      caseId: req.params.caseId,
+      tenant: "Volta Digital Agency",
+      product: "Invoice Factoring",
+      corridor: "US\u2192MX",
+      requestedLimit: 180000,
+      recommendedLimit: 150000,
+      score: 78,
+      decision: "Recommend \u2014 Human Gate 4 Review",
+      policyVersion: "ACB v4.12",
+      factors: [
+        { factor: "Cash-flow durability", signal: "12-mo operating cash inflow stability", value: "0.84", direction: "+", weight: "\u2014" },
+        { factor: "Revenue quality", signal: "Buyer concentration + contract tenor", value: "Top buyer 18%", direction: "+", weight: "\u2014" },
+        { factor: "Receivables health", signal: "DSO, aging, dilution", value: "DSO 31d", direction: "+", weight: "\u2014" },
+        { factor: "Operator behaviour", signal: "Spend discipline, cash runway actions", value: "8.2/10", direction: "+", weight: "\u2014" },
+        { factor: "Corridor risk", signal: "Jurisdiction + rail + buyer geo", value: "US\u2192MX", direction: "neutral", weight: "\u2014" },
+        { factor: "Compliance posture", signal: "KYB freshness, sanctions, adverse media", value: "Clean", direction: "+", weight: "\u2014" },
+        { factor: "Counterparty signals", signal: "Buyer trade history on Atlas", value: "3 repeat buyers", direction: "+", weight: "\u2014" },
+      ],
+      guardrails: [
+        "Max advance rate: 85%",
+        "Buyer concentration cap: 25%",
+        "Corridor cap (US\u2192MX): $400K per tenant",
+      ],
+      redactedNote: "Factor weights are lender-confidential and not exposed in public demo.",
+    });
+  });
+
+  app.get("/api/engine/policy", (_req, res) => {
+    res.json({
+      current: "ACB v4.12",
+      previous: "ACB v4.11",
+      deployedAt: "2026-04-14T11:24:00Z",
+      diff: [
+        { path: "corridor.US\u2192VN.eligibilityFloor", from: "45%", to: "48%", reason: "FX volatility widened; tighten" },
+        { path: "buyerConcentrationCap.factoring", from: "22%", to: "25%", reason: "Expand for mid-market multi-buyer tenants" },
+        { path: "advanceRate.factoring.default", from: "83%", to: "85%", reason: "Loss-adjusted yield target met" },
+        { path: "rbf.termCapMonths", from: "18", to: "24", reason: "SaaS ICP expansion" },
+      ],
+      replayable: true,
+      replaySampleSize: 142,
+      replayImpact: { decisionsChanged: 9, approvalDelta: "+1.8%", lossProxyDelta: "\u22120.3%" },
+    });
+  });
+
+  app.get("/api/engine/monitoring", (_req, res) => {
+    res.json({
+      covenants: [
+        { tenant: "Meridian Software", metric: "Burn multiple (60d)", value: 1.14, threshold: 1.2, status: "watch" },
+        { tenant: "NovaBridge SaaS", metric: "Buyer concentration", value: 0.21, threshold: 0.25, status: "ok" },
+        { tenant: "Bucharest Dynamics", metric: "DSO", value: 38, threshold: 45, status: "ok" },
+        { tenant: "Centurion Dev Labs", metric: "Advance rate utilization", value: 0.91, threshold: 0.95, status: "watch" },
+      ],
+      earlyWarnings: [
+        { tenant: "Guadalajara Studios", signal: "Cash inflow variance up 22% WoW", severity: "watch" },
+        { tenant: "Mumbai Infra Labs", signal: "Buyer payment delay trend (>5d drift)", severity: "watch" },
+      ],
+    });
+  });
+
+  app.get("/api/engine/agents", (_req, res) => {
+    res.json([
+      {
+        name: "Orchestrator",
+        role: "Routes cases across gates and agents. Owns SLAs.",
+        status: "live",
+        actionsToday: 312,
+        escalationRate: 0.08,
+      },
+      {
+        name: "Compliance Agent",
+        role: "KYB, sanctions, UBO, adverse media, refresh cadence.",
+        status: "live",
+        actionsToday: 64,
+        escalationRate: 0.03,
+      },
+      {
+        name: "Underwriting Agent",
+        role: "Runs 7-factor scoring, assembles memo, proposes limits.",
+        status: "live",
+        actionsToday: 41,
+        escalationRate: 0.18,
+      },
+      {
+        name: "Treasury Agent",
+        role: "Sweeps, FX routing, rail selection, reserve maintenance.",
+        status: "pilot",
+        actionsToday: 19,
+        escalationRate: 0.05,
+      },
+      {
+        name: "Reconciliation Agent",
+        role: "ERP\u2194Atlas match, variance triage, auto-resolve.",
+        status: "live",
+        actionsToday: 128,
+        escalationRate: 0.02,
+      },
+    ]);
+  });
+
+  app.get("/api/engine/events", (_req, res) => {
+    const now = Date.now();
+    res.json([
+      { ts: new Date(now - 1000 * 60 * 2).toISOString(), domain: "credit", event: "advance.proposed", subject: "INV-2041", detail: "Factoring advance proposed, $38,250" },
+      { ts: new Date(now - 1000 * 60 * 6).toISOString(), domain: "compliance", event: "kyb.refresh.queued", subject: "Bucharest Dynamics", detail: "Annual refresh window opens" },
+      { ts: new Date(now - 1000 * 60 * 11).toISOString(), domain: "treasury", event: "sweep.suggested", subject: "FBO-USDC", detail: "Idle $45K \u2192 Circle Yield pilot" },
+      { ts: new Date(now - 1000 * 60 * 18).toISOString(), domain: "recon", event: "variance.auto_resolved", subject: "QB-8820", detail: "FX timing variance $188.00" },
+      { ts: new Date(now - 1000 * 60 * 27).toISOString(), domain: "policy", event: "acb.deployed", subject: "v4.12", detail: "Replay sample 142 cases; approval +1.8%" },
+      { ts: new Date(now - 1000 * 60 * 41).toISOString(), domain: "credit", event: "case.gate3.pass", subject: "CS-2045", detail: "NovaBridge RBF \u2014 auto-routed to Gate 4" },
+      { ts: new Date(now - 1000 * 60 * 58).toISOString(), domain: "credit", event: "decision.issued", subject: "CS-2038", detail: "Approved $120K factoring \u2014 time-to-decision 3.8 min" },
+    ]);
+  });
+
+  app.get("/api/engine/lender", (_req, res) => {
+    // Borrowing base preview — permissioned view, redacted in public demo
+    res.json({
+      reportingPeriod: "2026-03-01 \u2192 2026-03-31",
+      borrowingBase: 4210000,
+      eligiblePool: 3680000,
+      reserves: { dilution: 212000, concentration: 148000, aging: 170000 },
+      yieldNetBps: 1820,
+      lossProxyBps: 28,
+      sampleCases: 142,
+      watermark: "PREVIEW \u00b7 LENDER-PERMISSIONED \u00b7 NOT FOR DISTRIBUTION",
+    });
+  });
+
   return httpServer;
 }
