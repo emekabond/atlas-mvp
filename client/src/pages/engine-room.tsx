@@ -822,17 +822,27 @@ export default function EngineRoom() {
     };
     const section = readSection();
     if (!section) return;
-    // Wait for the page to paint (sections render after useQuery settles).
-    // Up to 8s of retries handles slow cold-start API responses on first load.
-    const tryScroll = (attempt = 0) => {
+    // Sections render progressively as useQuery calls resolve, which means
+    // the page keeps growing after the initial scroll. We re-scroll on every
+    // tick until either the target is actually in view or we've retried for
+    // ~10s (covers cold-start API latency without feeling stuck).
+    let settled = false;
+    const tick = (attempt = 0) => {
+      if (settled || attempt > 100) return;
       const el = document.getElementById(section);
       if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
-      } else if (attempt < 80) {
-        setTimeout(() => tryScroll(attempt + 1), 100);
+        const r = el.getBoundingClientRect();
+        const nearTop = Math.abs(r.top) < 120;
+        if (nearTop) {
+          settled = true;
+          return;
+        }
+        // Use "auto" on later attempts so we don't queue overlapping smooth scrolls.
+        el.scrollIntoView({ behavior: attempt < 3 ? "smooth" : "auto", block: "start" });
       }
+      setTimeout(() => tick(attempt + 1), 100);
     };
-    tryScroll();
+    tick();
   }, []);
 
   const nav: Array<{ id: string; label: string }> = [
