@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import {
@@ -18,6 +18,14 @@ import {
   CheckCircle2,
   CircleAlert,
 } from "lucide-react";
+
+// Scroll to an in-page section by id WITHOUT mutating location.hash.
+// Plain <a href="#id"> would overwrite wouter's route hash (e.g. #/engine-room/)
+// and trigger a 404. This handler avoids that.
+function scrollToSection(id: string) {
+  const el = typeof document !== "undefined" ? document.getElementById(id) : null;
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
 
 // ---------- Types ----------
 interface EngineStatus {
@@ -117,12 +125,13 @@ function Section({
             {title}
           </h2>
         </div>
-        <a
-          href={`#${id}`}
+        <button
+          type="button"
+          onClick={() => scrollToSection(id)}
           className="text-[11px] text-slate-500 hover:text-slate-300"
         >
           #{id}
-        </a>
+        </button>
       </div>
       <div className="mt-5">{children}</div>
     </section>
@@ -790,6 +799,41 @@ export default function EngineRoom() {
   const { data: events } = useQuery<EngineEvent[]>({ queryKey: ["/api/engine/events"] });
   const { data: lender } = useQuery<Lender>({ queryKey: ["/api/engine/lender"] });
 
+  // Deep-link support: respect ?section=<id> so external callers (e.g. the
+  // access gateway's "Lender & Capital" card) can scroll into a specific
+  // section on load. We check location.search first, then the inner hash
+  // portion after the route (e.g. /#/engine-room/?section=lender).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const readSection = (): string | null => {
+      try {
+        // 1) Query string on the window URL itself (non-hash routers or direct links)
+        const direct = new URLSearchParams(window.location.search).get("section");
+        if (direct) return direct;
+        // 2) Query string embedded inside the hash route, e.g. #/engine-room/?section=lender
+        const hash = window.location.hash || "";
+        const qIdx = hash.indexOf("?");
+        if (qIdx >= 0) {
+          const inner = new URLSearchParams(hash.slice(qIdx + 1)).get("section");
+          if (inner) return inner;
+        }
+      } catch {}
+      return null;
+    };
+    const section = readSection();
+    if (!section) return;
+    // Wait for the page to paint (sections render after useQuery settles).
+    const tryScroll = (attempt = 0) => {
+      const el = document.getElementById(section);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else if (attempt < 20) {
+        setTimeout(() => tryScroll(attempt + 1), 100);
+      }
+    };
+    tryScroll();
+  }, []);
+
   const nav: Array<{ id: string; label: string }> = [
     { id: "status", label: "Status" },
     { id: "fabric", label: "Data Fabric" },
@@ -829,13 +873,14 @@ export default function EngineRoom() {
         </div>
         <nav className="mx-auto flex max-w-6xl items-center gap-4 overflow-x-auto px-6 pb-2 text-[11px] text-slate-500">
           {nav.map((n) => (
-            <a
+            <button
               key={n.id}
-              href={`#${n.id}`}
+              type="button"
+              onClick={() => scrollToSection(n.id)}
               className="whitespace-nowrap hover:text-slate-200"
             >
               {n.label}
-            </a>
+            </button>
           ))}
         </nav>
       </div>
