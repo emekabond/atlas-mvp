@@ -823,11 +823,12 @@ export default function EngineRoom() {
     const section = readSection();
     if (!section) return;
     // Wait for the page to paint (sections render after useQuery settles).
+    // Up to 8s of retries handles slow cold-start API responses on first load.
     const tryScroll = (attempt = 0) => {
       const el = document.getElementById(section);
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "start" });
-      } else if (attempt < 20) {
+      } else if (attempt < 80) {
         setTimeout(() => tryScroll(attempt + 1), 100);
       }
     };
