@@ -95,7 +95,7 @@ export function ActionRail({
     return (
       <button
         onClick={onToggle}
-        className="fixed right-3 top-20 z-20 flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground shadow-sm hover-elevate"
+        className="fixed right-3 top-20 z-30 flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground shadow-sm hover-elevate"
         data-testid="action-rail-open"
         aria-label="Open AI Action Rail"
       >
@@ -105,10 +105,20 @@ export function ActionRail({
   }
 
   return (
-    <aside
-      className="flex w-[340px] shrink-0 flex-col border-l border-border bg-background"
-      data-testid="action-rail"
-    >
+    <>
+      {/* Mobile backdrop: tap to close. Hidden on lg+ where the rail docks
+          alongside the main content as a regular column. */}
+      <button
+        type="button"
+        aria-label="Close Action Rail"
+        onClick={onToggle}
+        className="fixed inset-0 z-20 bg-black/40 backdrop-blur-[1px] lg:hidden"
+        data-testid="action-rail-backdrop"
+      />
+      <aside
+        className="fixed right-0 top-0 z-30 flex h-screen w-[88vw] max-w-[340px] flex-col border-l border-border bg-background lg:static lg:h-auto lg:w-[340px] lg:max-w-none lg:shrink-0"
+        data-testid="action-rail"
+      >
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
@@ -209,6 +219,7 @@ export function ActionRail({
       <div className="border-t border-border px-4 py-2 text-[10px] text-muted-foreground">
         Agents stay in the loop. Operators stay in control.
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

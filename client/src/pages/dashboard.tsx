@@ -23,7 +23,13 @@ import {
   ArrowUpRight,
   Sparkles,
   ChevronRight,
+  Info,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Link } from "wouter";
 import {
   AreaChart,
@@ -171,9 +177,30 @@ export default function Dashboard() {
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                      Available Liquidity
-                    </p>
+                    <div className="flex items-center gap-1">
+                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                        Available Liquidity
+                      </p>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="text-muted-foreground hover:text-foreground"
+                            aria-label="How available liquidity is calculated"
+                            data-testid="tooltip-available-liquidity"
+                          >
+                            <Info className="h-3 w-3" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="max-w-xs text-xs">
+                          Cash on hand plus undrawn capacity on the Atlas
+                          warehouse facility (Meridian SCP, $25M, SOFR+425bps).
+                          Active advances are funded directly from this
+                          facility — they don't reduce available liquidity
+                          until the facility is fully drawn.
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
                     <p className="text-2xl font-bold tabular-nums mt-1">
                       {formatCurrency(liquidity.availableLiquidity)}
                     </p>
@@ -218,14 +245,34 @@ export default function Dashboard() {
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                      Active Advances
-                    </p>
+                    <div className="flex items-center gap-1">
+                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                        Active Advances
+                      </p>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="text-muted-foreground hover:text-foreground"
+                            aria-label="How active advances are funded"
+                            data-testid="tooltip-active-advances"
+                          >
+                            <Info className="h-3 w-3" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="max-w-xs text-xs">
+                          Outstanding factoring advances and RBF draws funded
+                          from the Atlas warehouse facility. These do not
+                          reduce "Available Liquidity" — the warehouse extends
+                          drawing capacity beyond on-balance-sheet cash.
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
                     <p className="text-2xl font-bold tabular-nums mt-1">
                       {formatCurrency(liquidity.activeAdvances)}
                     </p>
                     <p className="text-[11px] text-muted-foreground mt-1">
-                      Across factoring + RBF at cost
+                      Funded from warehouse facility
                     </p>
                   </div>
                   <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
@@ -324,7 +371,7 @@ export default function Dashboard() {
           <StatusPill stage="live" />
         </CardHeader>
         <CardContent>
-          <div className="h-56">
+          <div className="h-56 sm:h-64 md:h-72">
             {cashflow && (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={cashflow}>

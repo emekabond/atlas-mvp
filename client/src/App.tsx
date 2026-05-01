@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Switch, Route, Router } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
 import { queryClient } from "./lib/queryClient";
@@ -43,7 +43,25 @@ function AppRouter() {
 
 function AppShell() {
   const [location] = useHashLocation();
-  const [railCollapsed, setRailCollapsed] = useState(false);
+  // Default the Action Rail to collapsed on small screens (matching Tailwind's
+  // lg breakpoint at 1024px). On desktop the rail is open by default for the
+  // "recommendations on entry" experience; on mobile we keep the dashboard
+  // unobstructed and let users tap the floating Sparkles button to open it.
+  const [railCollapsed, setRailCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(max-width: 1023px)").matches;
+  });
+  // If the user resizes across the breakpoint, collapse on mobile to avoid
+  // a permanently-open drawer covering the page after a rotation.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 1023px)");
+    const onChange = (e: MediaQueryListEvent) => {
+      if (e.matches) setRailCollapsed(true);
+    };
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
   const isEngineRoom = location.startsWith("/engine-room");
 
   if (isEngineRoom) {

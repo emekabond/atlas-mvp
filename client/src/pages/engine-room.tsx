@@ -72,7 +72,7 @@ interface Policy {
 }
 interface Monitoring {
   covenants: Array<{ tenant: string; metric: string; value: number; threshold: number; status: string }>;
-  earlyWarnings: Array<{ tenant: string; signal: string; severity: string }>;
+  earlyWarnings: Array<{ tenant: string; signal: string; severity: string; sla?: string }>;
 }
 interface AgentRow {
   name: string;
@@ -96,6 +96,8 @@ interface Lender {
   yieldNetBps: number;
   lossProxyBps: number;
   sampleCases: number;
+  concentrationLimits?: Array<{ label: string; current: number; capPct: number; note?: string }>;
+  registry?: { seriesId: string; url: string; chain: string };
   watermark: string;
 }
 
@@ -143,7 +145,7 @@ function Pill({
   tone = "slate",
 }: {
   children: React.ReactNode;
-  tone?: "slate" | "emerald" | "amber" | "sky" | "violet" | "rose";
+  tone?: "slate" | "emerald" | "amber" | "sky" | "violet" | "rose" | "yellow" | "orange" | "red";
 }) {
   const map: Record<string, string> = {
     slate: "bg-slate-500/10 text-slate-300 border-slate-500/30",
@@ -152,6 +154,9 @@ function Pill({
     sky: "bg-sky-500/10 text-sky-300 border-sky-500/30",
     violet: "bg-violet-500/10 text-violet-300 border-violet-500/30",
     rose: "bg-rose-500/10 text-rose-300 border-rose-500/30",
+    yellow: "bg-yellow-500/10 text-yellow-300 border-yellow-500/30",
+    orange: "bg-orange-500/10 text-orange-300 border-orange-500/30",
+    red: "bg-red-500/15 text-red-300 border-red-500/40",
   };
   return (
     <span
@@ -212,13 +217,13 @@ function StatusSection({ data }: { data?: EngineStatus }) {
       />
       <Stat
         label="Cases today"
-        value={String(data.casesToday)}
-        foot={`${data.autoDecisionedPct}% auto-decisioned`}
+        value={`${String(data.casesToday)} sim`}
+        foot={`Pilot real-traffic 4–6/day · ${data.autoDecisionedPct}% auto-decisioned`}
       />
       <Stat
         label="Median time-to-decision"
         value={`~${data.medianTimeToDecisionMin} min`}
-        foot={`SLA breach ${(data.slaBreachRate * 100).toFixed(2)}%`}
+        foot={`Measured on simulated load · SLA breach ${(data.slaBreachRate * 100).toFixed(2)}%`}
       />
       <Stat
         label="Queue depth"
@@ -552,19 +557,29 @@ function MonitoringSection({ data }: { data?: Monitoring }) {
           Early warning signals (scaffold)
         </div>
         <div className="divide-y divide-slate-800">
-          {data.earlyWarnings.map((w, i) => (
-            <div key={i} className="flex items-start justify-between gap-3 px-4 py-3">
-              <div>
-                <div className="text-sm text-slate-100">{w.tenant}</div>
-                <div className="text-[11px] text-slate-400">{w.signal}</div>
+          {data.earlyWarnings.map((w, i) => {
+            const sev = (w.severity || "").toLowerCase();
+            const tone: "yellow" | "orange" | "red" | "amber" =
+              sev === "red" ? "red" : sev === "orange" ? "orange" : sev === "yellow" ? "yellow" : "amber";
+            return (
+              <div key={i} className="flex items-start justify-between gap-3 px-4 py-3">
+                <div className="min-w-0">
+                  <div className="text-sm text-slate-100">{w.tenant}</div>
+                  <div className="text-[11px] text-slate-400">{w.signal}</div>
+                  {w.sla && (
+                    <div className="mt-1 text-[10px] uppercase tracking-wider text-slate-500">
+                      SLA · {w.sla}
+                    </div>
+                  )}
+                </div>
+                <Pill tone={tone}>{w.severity}</Pill>
               </div>
-              <Pill tone="amber">{w.severity}</Pill>
-            </div>
-          ))}
+            );
+          })}
         </div>
         <div className="border-t border-slate-800 px-4 py-2 text-[10px] text-slate-600">
-          EWS is a scaffolded capability — rules engine in production,
-          ML-ranked severities are not yet live.
+          Severity tiers · Yellow (5 business days) · Orange (48 hours) · Red
+          (24 hours). Rules engine live; ML-ranked severities scaffolded.
         </div>
       </div>
     </div>
@@ -676,9 +691,141 @@ function LenderSection({ data }: { data?: Lender }) {
           <Stat label="Reserve · concentration" value={formatMoney(data.reserves.concentration)} />
           <Stat label="Reserve · aging" value={formatMoney(data.reserves.aging)} />
         </div>
-        <div className="mt-4 text-[10px] uppercase tracking-[0.2em] text-slate-500">
-          {data.watermark}
+
+        {data.concentrationLimits && data.concentrationLimits.length > 0 && (
+          <div className="mt-5 rounded-lg border border-slate-800 bg-slate-950/40 p-4">
+            <div className="flex items-center justify-between">
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">
+                Concentration limit utilization
+              </div>
+              <Pill tone="sky">vs facility caps</Pill>
+            </div>
+            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+              {data.concentrationLimits.map((cl, i) => {
+                const pct = (cl.current / cl.capPct) * 100;
+                const tone =
+                  pct >= 90 ? "red" : pct >= 75 ? "orange" : pct >= 50 ? "yellow" : "emerald";
+                const barColor =
+                  tone === "red"
+                    ? "bg-red-500"
+                    : tone === "orange"
+                    ? "bg-orange-500"
+                    : tone === "yellow"
+                    ? "bg-yellow-500"
+                    : "bg-emerald-500";
+                return (
+                  <div key={i} className="rounded-md border border-slate-800 bg-slate-950/60 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-sm text-slate-200">{cl.label}</div>
+                      <div className="text-[11px] tabular-nums text-slate-400">
+                        {cl.current.toFixed(1)}% / {cl.capPct}%
+                      </div>
+                    </div>
+                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+                      <div
+                        className={`h-full ${barColor}`}
+                        style={{ width: `${Math.min(100, pct).toFixed(1)}%` }}
+                      />
+                    </div>
+                    <div className="mt-2 flex items-center justify-between">
+                      <div className="text-[10px] text-slate-500">{cl.note}</div>
+                      <div className="text-[10px] uppercase tracking-wider text-slate-500">
+                        {pct.toFixed(0)}% of cap
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">
+            {data.watermark}
+          </div>
+          {data.registry && (
+            <a
+              href={data.registry.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-md border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-medium text-cyan-300 transition-colors hover:bg-cyan-500/20"
+            >
+              <ExternalLink className="h-3 w-3" />
+              View on-chain registry
+              <span className="ml-1 rounded border border-cyan-500/40 px-1 py-px text-[9px] uppercase tracking-wider text-cyan-200/80">
+                Preview
+              </span>
+            </a>
+          )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function WorkoutsSection() {
+  const stages = [
+    {
+      name: "Engagement",
+      count: 0,
+      sla: "5 business days",
+      desc: "Outreach, root-cause discovery, restructure proposal.",
+      tone: "yellow" as const,
+    },
+    {
+      name: "Enforcement Prep",
+      count: 0,
+      sla: "10 business days",
+      desc: "Notices, reserve adjustments, collateral perfection review.",
+      tone: "orange" as const,
+    },
+    {
+      name: "Legal Action",
+      count: 0,
+      sla: "30 business days",
+      desc: "Counsel engaged, demand issued, litigation prep or settlement.",
+      tone: "red" as const,
+    },
+    {
+      name: "Write-Off",
+      count: 0,
+      sla: "Quarterly review",
+      desc: "Reserve true-up, charge-off booking, recovery handoff.",
+      tone: "slate" as const,
+    },
+  ];
+  return (
+    <div className="rounded-lg border border-slate-800 bg-slate-950/60">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 px-4 py-2">
+        <div className="text-[10px] uppercase tracking-wider text-slate-500">
+          Workouts pipeline · 4-stage process
+        </div>
+        <Pill tone="violet">Scaffold</Pill>
+      </div>
+      <div className="grid grid-cols-1 gap-3 p-4 md:grid-cols-2 lg:grid-cols-4">
+        {stages.map((s, i) => (
+          <div
+            key={s.name}
+            className="relative rounded-md border border-slate-800 bg-slate-950/40 p-4"
+          >
+            <div className="flex items-center justify-between">
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">
+                Stage {i + 1}
+              </div>
+              <Pill tone={s.tone}>{s.count} active</Pill>
+            </div>
+            <div className="mt-2 text-sm font-semibold text-white">{s.name}</div>
+            <p className="mt-1 text-[12px] leading-relaxed text-slate-400">{s.desc}</p>
+            <div className="mt-3 text-[10px] uppercase tracking-wider text-slate-500">
+              SLA window · {s.sla}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="border-t border-slate-800 px-4 py-2 text-[10px] text-slate-600">
+        Workouts module is scaffolded — process labels and SLAs defined; case
+        management, document automation and counsel handoff are roadmap.
       </div>
     </div>
   );
@@ -799,6 +946,9 @@ export default function EngineRoom() {
   const { data: events } = useQuery<EngineEvent[]>({ queryKey: ["/api/engine/events"] });
   const { data: lender } = useQuery<Lender>({ queryKey: ["/api/engine/lender"] });
 
+  // Track which section is in view so the top nav can highlight it.
+  const [activeSection, setActiveSection] = useState<string | null>(null);
+
   // Deep-link support: respect ?section=<id> so external callers (e.g. the
   // access gateway's "Lender & Capital" card) can scroll into a specific
   // section on load. We check location.search first, then the inner hash
@@ -845,6 +995,39 @@ export default function EngineRoom() {
     tick();
   }, []);
 
+  // Active section highlighting via IntersectionObserver.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const ids = ["status", "fabric", "queue", "memo", "policy", "monitoring", "workouts", "agents", "events", "lender", "products"];
+    const els = ids.map((id) => document.getElementById(id)).filter(Boolean) as HTMLElement[];
+    if (els.length === 0) return;
+    const seen = new Map<string, number>();
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            seen.set(entry.target.id, entry.intersectionRatio);
+          } else {
+            seen.delete(entry.target.id);
+          }
+        });
+        // Pick the section with the largest visible area.
+        let best: string | null = null;
+        let bestRatio = 0;
+        seen.forEach((ratio, id) => {
+          if (ratio > bestRatio) {
+            bestRatio = ratio;
+            best = id;
+          }
+        });
+        if (best) setActiveSection(best);
+      },
+      { rootMargin: "-30% 0px -55% 0px", threshold: [0, 0.25, 0.5, 0.75, 1] }
+    );
+    els.forEach((el) => obs.observe(el));
+    return () => obs.disconnect();
+  }, [data, queue, memo, policy, monitoring, agents, events, lender]);
+
   const nav: Array<{ id: string; label: string }> = [
     { id: "status", label: "Status" },
     { id: "fabric", label: "Data Fabric" },
@@ -852,6 +1035,7 @@ export default function EngineRoom() {
     { id: "memo", label: "Credit Memo" },
     { id: "policy", label: "Policy (ACB)" },
     { id: "monitoring", label: "Monitoring" },
+    { id: "workouts", label: "Workouts" },
     { id: "agents", label: "Agent Layer" },
     { id: "events", label: "Event Stream" },
     { id: "lender", label: "Lender View" },
@@ -882,18 +1066,33 @@ export default function EngineRoom() {
             </Link>
           </div>
         </div>
-        <nav className="mx-auto flex max-w-6xl items-center gap-4 overflow-x-auto px-6 pb-2 text-[11px] text-slate-500">
-          {nav.map((n) => (
-            <button
-              key={n.id}
-              type="button"
-              onClick={() => scrollToSection(n.id)}
-              className="whitespace-nowrap hover:text-slate-200"
-            >
-              {n.label}
-            </button>
-          ))}
-        </nav>
+        <div className="relative">
+          <nav className="mx-auto flex max-w-6xl items-center gap-4 overflow-x-auto px-6 pb-2 text-[11px] text-slate-500">
+            {nav.map((n) => {
+              const isActive = activeSection === n.id;
+              return (
+                <button
+                  key={n.id}
+                  type="button"
+                  onClick={() => scrollToSection(n.id)}
+                  className={`whitespace-nowrap transition-colors ${
+                    isActive
+                      ? "text-white border-b border-cyan-400 pb-1"
+                      : "hover:text-slate-200"
+                  }`}
+                  aria-current={isActive ? "true" : undefined}
+                >
+                  {n.label}
+                </button>
+              );
+            })}
+          </nav>
+          {/* Right-edge gradient hints "more tabs" on small screens */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-[#07090c] to-transparent md:hidden"
+          />
+        </div>
       </div>
 
       {/* Header */}
@@ -963,6 +1162,15 @@ export default function EngineRoom() {
           title="Covenants & early-warning signals"
         >
           <MonitoringSection data={monitoring} />
+        </Section>
+
+        <Section
+          id="workouts"
+          icon={Lock}
+          kicker="Loss mitigation"
+          title="Workouts pipeline"
+        >
+          <WorkoutsSection />
         </Section>
 
         <Section

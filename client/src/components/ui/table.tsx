@@ -5,15 +5,61 @@ import { cn } from "@/lib/utils"
 const Table = React.forwardRef<
   HTMLTableElement,
   React.HTMLAttributes<HTMLTableElement>
->(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto">
-    <table
-      ref={ref}
-      className={cn("w-full caption-bottom text-sm", className)}
-      {...props}
-    />
-  </div>
-))
+>(({ className, ...props }, ref) => {
+  // Track whether the table is horizontally scrollable so we can render a
+  // gradient affordance on each side. This makes "more columns→" obvious on
+  // mobile, where readers don't always realize they can scroll a table.
+  const scrollerRef = React.useRef<HTMLDivElement>(null)
+  const [overflow, setOverflow] = React.useState({ left: false, right: false })
+
+  React.useEffect(() => {
+    const el = scrollerRef.current
+    if (!el) return
+    const update = () => {
+      const hasOverflow = el.scrollWidth > el.clientWidth + 1
+      setOverflow({
+        left: hasOverflow && el.scrollLeft > 4,
+        right: hasOverflow && el.scrollLeft + el.clientWidth < el.scrollWidth - 4,
+      })
+    }
+    update()
+    el.addEventListener("scroll", update, { passive: true })
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => {
+      el.removeEventListener("scroll", update)
+      ro.disconnect()
+    }
+  }, [])
+
+  return (
+    <div className="relative w-full">
+      <div ref={scrollerRef} className="relative w-full overflow-x-auto">
+        <table
+          ref={ref}
+          className={cn("w-full caption-bottom text-sm", className)}
+          {...props}
+        />
+      </div>
+      {/* Right-edge gradient — hints "more columns to the right" */}
+      <div
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent transition-opacity",
+          overflow.right ? "opacity-100" : "opacity-0",
+        )}
+      />
+      {/* Left-edge gradient — hints "scrolled past the start" */}
+      <div
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background to-transparent transition-opacity",
+          overflow.left ? "opacity-100" : "opacity-0",
+        )}
+      />
+    </div>
+  )
+})
 Table.displayName = "Table"
 
 const TableHeader = React.forwardRef<

@@ -677,10 +677,16 @@ export async function registerRoutes(
     const invs = await storage.getInvoices();
     const facilities = await storage.getRbfFacilities();
     const eligible = invs
+      // Invoices that could be factored *now*: not yet drawn against, not
+      // already settled, and the credit agent has either flagged them as
+      // eligible or hasn't reviewed them yet.
       .filter(
         (i) =>
-          (i.status === "pending" || i.status === "approved") &&
-          (!i.factoringStatus || i.factoringStatus === "none" || i.factoringStatus === "eligible")
+          (i.status === "draft" || i.status === "sent") &&
+          (!i.factoringStatus ||
+            i.factoringStatus === "none" ||
+            i.factoringStatus === "eligible" ||
+            i.factoringStatus === "offered")
       )
       .reduce((s, i) => s + (i.amount || 0), 0);
     const factored = invs
@@ -910,8 +916,30 @@ export async function registerRoutes(
         { tenant: "Centurion Dev Labs", metric: "Advance rate utilization", value: 0.91, threshold: 0.95, status: "watch" },
       ],
       earlyWarnings: [
-        { tenant: "Guadalajara Studios", signal: "Cash inflow variance up 22% WoW", severity: "watch" },
-        { tenant: "Mumbai Infra Labs", signal: "Buyer payment delay trend (>5d drift)", severity: "watch" },
+        {
+          tenant: "Guadalajara Studios",
+          signal: "Cash inflow variance up 22% WoW",
+          severity: "yellow",
+          sla: "Respond within 5 business days",
+        },
+        {
+          tenant: "Mumbai Infra Labs",
+          signal: "Buyer payment delay trend (>5d drift)",
+          severity: "orange",
+          sla: "Respond within 48 hours",
+        },
+        {
+          tenant: "Centurion Dev Labs",
+          signal: "Advance utilization 91% \u2014 trending toward cap",
+          severity: "yellow",
+          sla: "Respond within 5 business days",
+        },
+        {
+          tenant: "Bucharest Dynamics",
+          signal: "Buyer payment failure cluster (3 buyers, single corridor)",
+          severity: "red",
+          sla: "Respond within 24 hours",
+        },
       ],
     });
   });
@@ -979,6 +1007,17 @@ export async function registerRoutes(
       yieldNetBps: 1820,
       lossProxyBps: 28,
       sampleCases: 142,
+      concentrationLimits: [
+        { label: "Single client", current: 8.4, capPct: 10, note: "Top tenant: NovaBridge SaaS" },
+        { label: "Single corridor", current: 27, capPct: 40, note: "US \u2192 MX corridor" },
+        { label: "Single tenor bucket", current: 62, capPct: 70, note: "30\u201360 day invoices" },
+        { label: "Single buyer", current: 14.2, capPct: 18, note: "Aggregate across all tenants" },
+      ],
+      registry: {
+        seriesId: "atlas-bb-2026-03",
+        url: "https://arc-explorer.atlas/registry/atlas-bb-2026-03",
+        chain: "Arc (preview)",
+      },
       watermark: "PREVIEW \u00b7 LENDER-PERMISSIONED \u00b7 NOT FOR DISTRIBUTION",
     });
   });
