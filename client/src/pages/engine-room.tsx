@@ -1026,7 +1026,7 @@ export default function EngineRoom() {
     );
     els.forEach((el) => obs.observe(el));
     return () => obs.disconnect();
-  }, [data, queue, memo, policy, monitoring, agents, events, lender]);
+  }, [status, fabric, queue, memo, policy, monitoring, agents, events, lender]);
 
   const nav: Array<{ id: string; label: string }> = [
     { id: "status", label: "Status" },
